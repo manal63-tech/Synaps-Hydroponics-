@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synaps Hydro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --radius: 18px;
+  --radius-sm: 12px;
+  --font-ui: 'IBM Plex Sans', 'IBM Plex Sans Arabic', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --ease-smooth: cubic-bezier(.22,.8,.2,1);
+}
+html[data-theme="light"]{
+  --bg: #F3F7F4;
+  --surface: rgba(255,255,255,.72);
+  --surface-2: rgba(245,250,247,.82);
+  --ink: #10251B;
+  --ink-soft: #5C7165;
+  --ink-faint: #94A69B;
+  --line: rgba(156,181,166,.28);
+  --accent: #15966A;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E0F5EA;
+  --normal: #15966A;      --normal-soft: #E0F5EA;
+  --investigate: #B47A18; --investigate-soft: #FFF2D9;
+  --critical: #E44949;    --critical-soft: #FFE4E4;
+  --fault: #665C78;       --fault-soft: #EEE9F5;
+  --shadow: 0 16px 40px rgba(31,82,57,.08), 0 2px 8px rgba(31,82,57,.05);
+}
+html[data-theme="dark"]{
+  --bg: #0D1512;
+  --surface: rgba(24,35,30,.82);
+  --surface-2: rgba(31,47,40,.9);
+  --ink: #EDF7F1;
+  --ink-soft: #A8BBB0;
+  --ink-faint: #71847A;
+  --line: rgba(139,174,153,.23);
+  --accent: #62D39B;
+  --accent-ink: #082016;
+  --accent-soft: #173A2B;
+  --normal: #62D39B;      --normal-soft: #173A2B;
+  --investigate: #E4B65A; --investigate-soft: #3D321A;
+  --critical: #FF6B68;    --critical-soft: #422021;
+  --fault: #D58BFF;       --fault-soft: #382442;
+  --shadow: 0 18px 42px rgba(0,0,0,.28), 0 2px 8px rgba(0,0,0,.2);
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; }
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font-ui); position:relative;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.48;
+  background-image:linear-gradient(135deg, rgba(21,150,106,.045) 25%, transparent 25%),
+    linear-gradient(315deg, rgba(21,150,106,.035) 25%, transparent 25%);
+  background-position:0 0, 28px 28px; background-size:56px 56px;
+}
+button{ font-family:inherit; }
+.mono{ font-family:var(--font-mono); }
+h1,h2,h3,p{ margin:0; }
+button{ cursor:pointer; }
+
+/* ============================= APP SHELL ============================= */
+#app{ display:flex; min-height:100vh; }
+/* NOTE: no manual row-reverse here — dir="rtl" on <html> already mirrors
+   a plain `flex-direction:row` automatically. Adding row-reverse on top
+   would cancel that mirroring back out. */
+
+/* Sidebar (desktop) */
+#sidebar{
+  width:238px; flex-shrink:0; background:rgba(255,255,255,.62); backdrop-filter:blur(18px);
+  border-inline-end:1px solid var(--line); padding:22px 16px; display:flex; flex-direction:column; gap:24px;
+}
+html[data-theme="dark"] #sidebar{ background:rgba(13,21,18,.78); }
+.brand{ display:flex; align-items:center; gap:11px; padding:0 6px; }
+.brand-mark{
+  width:38px; height:38px; border-radius:13px; background:linear-gradient(145deg,#2bd39a,#087d5b);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  box-shadow:0 8px 18px rgba(21,150,106,.25); animation:brandPulse 3.5s ease-in-out infinite;
+}
+.brand-mark svg{ width:21px; height:21px; }
+.brand-text h1{ font-size:16px; font-weight:700; letter-spacing:-.2px; }
+.brand-text p{ font-size:11.5px; color:var(--ink-soft); }
+
+nav.primary-nav{ display:flex; flex-direction:column; gap:2px; flex:1; }
+.nav-item{
+  display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:var(--radius-sm);
+  border:none; background:transparent; color:var(--ink-soft); font-size:13.5px; font-weight:500;
+  text-align:start; width:100%; transition:transform .2s var(--ease-smooth), background .2s, color .2s;
+}
+.nav-item svg{ width:18px; height:18px; flex-shrink:0; }
+.nav-item .badge{
+  margin-inline-start:auto; background:var(--critical); color:#fff; font-size:10.5px;
+  font-weight:600; padding:1px 6px; border-radius:20px; font-family:var(--font-mono);
+}
+.nav-item.active{ background:var(--accent-soft); color:var(--accent); box-shadow:inset 3px 0 var(--accent); transform:translateX(2px); }
+.nav-item:hover:not(.active){ background:var(--surface-2); color:var(--ink); }
+
+.sidebar-foot{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-faint); padding:0 6px;}
+.dot-live{ width:7px; height:7px; border-radius:50%; background:var(--normal); flex-shrink:0; }
+.dot-live.stale{ background:var(--investigate); }
+
+/* Main column */
+#main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+#topbar{
+  display:flex; align-items:center; justify-content:space-between; padding:20px 30px;
+  background:rgba(255,255,255,.45); backdrop-filter:blur(18px); border-bottom:1px solid var(--line); gap:12px; flex-wrap:wrap;
+}
+html[data-theme="dark"] #topbar{ background:rgba(13,21,18,.78); }
+#topbar h2{ font-size:21px; font-weight:700; letter-spacing:-.4px; }
+#topbar .sub{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+.topbar-actions{ display:flex; align-items:center; gap:8px; }
+.icon-btn{
+  width:36px; height:36px; border-radius:var(--radius-sm); border:1px solid var(--line);
+  background:var(--surface); display:flex; align-items:center; justify-content:center; color:var(--ink-soft);
+}
+.icon-btn:hover{ color:var(--ink); border-color:var(--ink-faint); }
+.icon-btn svg{ width:17px; height:17px; }
+
+#content{ flex:1; padding:28px 30px 100px 30px; overflow-y:auto; }
+.screen{ display:none; max-width:1080px; }
+.screen.active{ display:block; }
+
+/* Bottom nav (mobile) */
+#bottomnav{
+  display:none; position:fixed; bottom:0; inset-inline:0; background:rgba(255,255,255,.82);
+  backdrop-filter:blur(20px); border-top:1px solid var(--line); padding:8px 4px 11px 4px; z-index:20;
+}
+html[data-theme="dark"] #bottomnav{ background:rgba(13,21,18,.9); }
+#bottomnav .row{ display:flex; justify-content:space-around; }
+#bottomnav button{
+  display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none;
+  color:var(--ink-faint); font-size:10.5px; padding:7px 12px; border-radius:12px; position:relative; transition:all .25s var(--ease-smooth);
+}
+#bottomnav button svg{ width:20px; height:20px; }
+#bottomnav button.active{ color:var(--accent); background:var(--accent-soft); transform:translateY(-4px); box-shadow:0 7px 18px rgba(21,150,106,.14); }
+#bottomnav .dot{ position:absolute; top:2px; inset-inline-end:6px; width:7px; height:7px; border-radius:50%; background:var(--critical);}
+
+@media (max-width: 800px){
+  #sidebar{ display:none; }
+  #bottomnav{ display:block; }
+  #content{ padding:18px 16px 90px 16px; }
+  #topbar{ padding:14px 16px; }
+  #bottomnav .row{ max-width:620px; margin:0 auto; }
+  #bottomnav button{ flex:1; min-width:0; padding-inline:4px; }
+  #bottomnav button span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
+
+/* ============================= SHARED COMPONENTS ============================= */
+.status-banner{
+  border-radius:22px; padding:22px 24px; display:flex; align-items:center; gap:16px;
+  margin-bottom:22px; border:1px solid transparent; box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.status-banner::after{ content:""; position:absolute; width:150px; height:150px; border-radius:50%; inset-inline-end:-42px; top:-58px; background:currentColor; opacity:.07; }
+.status-banner .icon-wrap{
+  width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  background:rgba(255,255,255,0.55);
+}
+html[data-theme="dark"] .status-banner .icon-wrap{ background:rgba(0,0,0,0.18); }
+.status-banner .icon-wrap svg{ width:24px; height:24px; }
+.status-banner h3{ font-size:19px; font-weight:700; margin-bottom:4px; letter-spacing:-.2px; }
+.status-banner p{ font-size:13px; opacity:0.9; }
+.status-banner.normal{ background:var(--normal-soft); color:var(--normal); }
+.status-banner.investigate{ background:var(--investigate-soft); color:var(--investigate); }
+.status-banner.critical{ background:var(--critical-soft); color:var(--critical); }
+.status-banner.fault{ background:var(--fault-soft); color:var(--fault); }
+
+.meta-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px;}
+.meta-row .freshness{ font-size:12.5px; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+.meta-row .freshness .dot{ width:7px; height:7px; border-radius:50%; background:var(--normal); }
+.meta-row .freshness .dot.stale{ background:var(--investigate); }
+
+.card{ background:var(--surface); backdrop-filter:blur(18px); border:1px solid rgba(255,255,255,.9); border-radius:var(--radius); box-shadow:var(--shadow); }
+
+.led-control{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:16px 20px; margin-bottom:20px;
+}
+.led-control .lbl{ display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:500; }
+.led-control .lbl svg{ width:19px; height:19px; color:var(--ink-soft); }
+.led-hint{ color:var(--ink-soft); font-size:11px; line-height:1.5; flex-basis:100%; margin:8px 0 0 29px; }
+.led-error{ color:var(--critical); font-size:11px; flex-basis:100%; }
+.led-error:empty{ display:none; }
+.segmented{ display:flex; background:rgba(228,241,235,.75); border:1px solid var(--line); border-radius:20px; padding:3px; }
+.segmented button{
+  border:none; background:transparent; font-size:12px; font-weight:600; padding:7px 15px; border-radius:16px;
+  color:var(--ink-soft); transition:all .22s var(--ease-smooth);
+}
+.segmented button.active{ background:linear-gradient(135deg,#25b982,#087d5b); color:var(--accent-ink); box-shadow:0 5px 13px rgba(21,150,106,.25); }
+
+.sensor-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+@media (max-width:700px){ .sensor-grid{ grid-template-columns:repeat(2, 1fr); } }
+.sensor-card{
+  padding:17px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;
+  transition:transform .25s var(--ease-smooth), box-shadow .25s, border-color .25s;
+}
+.sensor-card:hover{ transform:translateY(-4px); box-shadow:0 20px 34px rgba(31,82,57,.12); }
+.sensor-card .top{ display:flex; align-items:center; justify-content:space-between; }
+.sensor-card .icon{ width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg,#effaf4,#d9f2e5); color:var(--accent); position:relative; }
+.sensor-card .icon::after{ content:""; position:absolute; inset:5px; border:1px solid currentColor; border-radius:8px; opacity:.16; animation:iconFlow 2.8s ease-in-out infinite; }
+.sensor-card .icon svg{ width:19px; height:19px; animation:iconBreathe 3s ease-in-out infinite; }
+.sensor-card .name{ font-size:12px; color:var(--ink-soft); font-weight:500; }
+.sensor-card .value{ font-family:var(--font-mono); font-size:25px; font-weight:600; letter-spacing:-.7px; }
+.sensor-card .value .unit{ font-size:13px; color:var(--ink-soft); font-weight:400; margin-inline-start:3px;}
+.sensor-card .target-note{ font-size:10px; line-height:1.4; color:var(--ink-soft); }
+.sensor-card .target-note strong{ color:var(--ink); }
+.rule-summary{ margin:14px 0; padding:14px 16px; display:grid; gap:5px; }
+.rule-summary strong{ font-size:12px; }
+.rule-summary p{ margin:0 0 5px; color:var(--ink-soft); font-size:11px; line-height:1.5; }
+.status-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.status-dot.normal{ background:var(--normal); }
+.status-dot.investigate{ background:var(--investigate); }
+.status-dot.attention{ background:var(--investigate); }
+.status-dot.critical{ background:var(--critical); }
+.status-dot.fault{ background:var(--fault); }
+.status-dot.pending{ background:var(--ink-faint); }
+.sensor-card.critical{ border-color:var(--critical); box-shadow:0 12px 28px rgba(228,73,73,.12); }
+.sensor-card.attention{ border-color:var(--investigate); }
+.sensor-card.fault{ border-color:var(--fault); box-shadow:0 12px 28px rgba(102,92,120,.16); }
+.sensor-card.critical .icon{ color:var(--critical); background:var(--critical-soft); }
+.sensor-card.fault .icon{ color:var(--fault); background:var(--fault-soft); }
+.sensor-card.critical .value{ color:var(--critical); }
+.sensor-card.fault .value{ color:var(--fault); }
+
+.section-title{ font-size:13px; font-weight:600; color:var(--ink-soft); margin: 26px 0 12px 0; }
+
+/* Alerts */
+.filter-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.pill{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px;
+  font-weight:500; padding:7px 14px; border-radius:20px;
+}
+.pill.active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+
+.alert-item{
+  display:flex; gap:14px; padding:17px; border-inline-start:4px solid var(--line); background:var(--surface);
+  backdrop-filter:blur(18px); border-radius:var(--radius-sm); margin-bottom:12px; cursor:pointer; border-block:1px solid var(--line); border-inline-end:1px solid var(--line); box-shadow:var(--shadow); transition:transform .2s var(--ease-smooth);
+}
+.alert-item:hover{ transform:translateX(4px); }
+.alert-item.investigate{ border-inline-start-color:var(--investigate); }
+.alert-item.critical{ border-inline-start-color:var(--critical); }
+.alert-item.fault{ border-inline-start-color:var(--fault); }
+.alert-item .aicon{
+  width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.aicon.normal{ background:var(--normal-soft); color:var(--normal); }
+.aicon.investigate{ background:var(--investigate-soft); color:var(--investigate); }
+.aicon.critical{ background:var(--critical-soft); color:var(--critical); }
+.aicon.fault{ background:var(--fault-soft); color:var(--fault); }
+.alert-item .aicon svg{ width:17px; height:17px; }
+.alert-body{ flex:1; min-width:0; }
+.alert-head{ display:flex; justify-content:space-between; gap:10px; margin-bottom:3px;}
+.alert-head .title{ font-size:14px; font-weight:600; }
+.alert-head time{ font-size:11.5px; color:var(--ink-faint); font-family:var(--font-mono); white-space:nowrap; }
+.alert-desc{ font-size:13px; color:var(--ink-soft); line-height:1.45; margin-bottom:8px; }
+.tag-row{ display:flex; gap:6px; flex-wrap:wrap; }
+.tag{ background:var(--surface-2); color:var(--ink-soft); font-size:11px; padding:3px 9px; border-radius:5px; }
+.alert-feedback{ display:flex; gap:8px; margin-top:12px; }
+.feedback-btn{
+  border:1px solid var(--line); background:transparent; border-radius:999px; padding:7px 12px; color:var(--ink-soft); font-size:11.5px; font-weight:600;
+}
+.feedback-btn:hover{ border-color:var(--ink-faint); color:var(--ink); }
+.feedback-btn.is-selected{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+.action-line{ font-size:12.5px; color:var(--accent); margin-top:8px; display:flex; gap:6px; align-items:flex-start;}
+.action-line svg{ width:14px; height:14px; margin-top:1px; flex-shrink:0; }
+
+/* Modal (alert detail) */
+#overlay{ position:fixed; inset:0; background:rgba(10,10,10,0.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+#overlay.show{ display:flex; }
+#modal{ background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); max-width:420px; width:100%; max-height:calc(100vh - 40px); overflow-y:auto; padding:22px; }
+#modal .mhead{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+#modal .mvals{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+#modal .mvals div{ background:var(--surface-2); border-radius:8px; padding:9px 10px; }
+#modal .mvals .k{ font-size:11px; color:var(--ink-soft); }
+#modal .mvals .v{ font-family:var(--font-mono); font-size:14px; font-weight:600; margin-top:2px; }
+#modal .mvals .v.bad{ color:var(--critical); }
+#closeModal{ border:none; background:var(--surface-2); width:28px; height:28px; border-radius:50%; color:var(--ink-soft); }
+
+/* History */
+.tab-row{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; }
+.tab-row button{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px;
+  font-weight:500; padding:8px 14px; border-radius:20px; white-space:nowrap; flex-shrink:0;
+}
+.tab-row button.active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+.range-row{ display:flex; gap:8px; margin-bottom:16px; }
+.range-row button{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px;
+  padding:7px 13px; border-radius:var(--radius-sm); font-weight:500;
+}
+.range-row button.active{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
+.custom-range{ display:flex; align-items:center; gap:8px; margin:-6px 0 16px; flex-wrap:wrap; }
+.custom-range input{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:7px 9px; color:var(--ink); background:var(--surface); font:12px var(--font-ui); }
+.chart-card{ padding:18px; }
+.chart-card h3{ font-size:14px; font-weight:600; margin-bottom:2px;}
+.chart-card .crange{ font-size:12px; color:var(--ink-soft); margin-bottom:14px; }
+.legend-row{ display:flex; gap:16px; margin-top:10px; font-size:11.5px; color:var(--ink-soft); }
+.legend-row .sw{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-inline-end:5px; vertical-align:-1px; }
+
+/* Sensor health */
+.health-hero{ padding:30px; text-align:center; margin-bottom:18px; }
+.health-hero .ring{ width:58px; height:58px; border-radius:50%; background:var(--normal-soft); color:var(--normal);
+  display:flex; align-items:center; justify-content:center; margin:0 auto 14px auto; }
+.health-hero .ring svg{ width:28px; height:28px; }
+.health-hero h3{ font-size:16px; font-weight:700; margin-bottom:5px;}
+.health-hero p{ font-size:13px; color:var(--ink-soft); }
+.health-hero.bad .ring{ background:var(--fault-soft); color:var(--fault); }
+.health-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:600px){ .health-grid{ grid-template-columns:1fr; } }
+.health-row{ display:flex; align-items:center; gap:12px; padding:14px 16px; }
+.health-row .icon{ width:34px; height:34px; border-radius:8px; background:var(--normal-soft); color:var(--normal); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.health-row .icon svg{ width:17px; height:17px; }
+.health-row.fault .icon{ background:var(--fault-soft); color:var(--fault); }
+.health-row .name{ font-size:13.5px; font-weight:500; }
+.health-row .state{ font-size:12px; color:var(--normal); margin-top:1px; }
+.health-row.fault .state{ color:var(--fault); }
+.health-row .stateok{ margin-inline-start:auto; color:var(--normal); }
+.health-row.fault .stateok{ color:var(--fault); }
+.health-row.pending .icon{ background:var(--surface-2); color:var(--ink-faint); }
+.health-row.pending .state, .health-row.pending .stateok{ color:var(--ink-faint); }
+
+.ai-step .number{ width:24px; height:24px; border-radius:8px; flex-shrink:0; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent); font:600 11px var(--font-mono); }
+.ai-step strong{ display:block; font-size:12px; margin-bottom:3px; }
+.ai-step p{ color:var(--ink-soft); font-size:11.5px; line-height:1.5; }
+.ai-note{ padding:13px 15px; margin-top:14px; border-inline-start:3px solid var(--investigate); border-radius:8px; background:var(--investigate-soft); }
+.ai-chart{ margin-top:14px; }
+@media (max-width:700px){ .ai-metrics{ grid-template-columns:1fr 1fr; } .ai-grid{ grid-template-columns:1fr; } .ai-hero-head{ flex-direction:column; } }
+
+/* Settings */
+.settings-block{ padding:18px; margin-bottom:16px; }
+.settings-block h3{ font-size:13.5px; font-weight:600; margin-bottom:3px; display:flex; align-items:center; gap:8px;}
+.settings-block h3 svg{ width:16px; height:16px; color:var(--ink-soft); }
+.settings-block .desc{ font-size:12px; color:var(--ink-soft); margin-bottom:14px; }
+.lang-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.lang-opt{
+  border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 8px; text-align:center; background:var(--surface-2);
+}
+.lang-opt.active{ border-color:var(--accent); background:var(--accent-soft); }
+.lang-opt .code{ font-family:var(--font-mono); font-weight:700; font-size:13px; }
+.lang-opt.active .code{ color:var(--accent); }
+.lang-opt .native{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+
+.theme-row{ display:flex; gap:10px; }
+.theme-opt{
+  flex:1; border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px; display:flex; flex-direction:column;
+  align-items:center; gap:8px; background:var(--surface-2); font-size:12.5px; font-weight:500; color:var(--ink-soft);
+}
+.theme-opt svg{ width:19px; height:19px; }
+.theme-opt.active{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+
+.toggle-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--line); }
+.toggle-row:first-of-type{ border-top:none; }
+.toggle-row .t{ font-size:13px; font-weight:500; }
+.toggle-row .d{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+.switch{ position:relative; width:40px; height:23px; border-radius:20px; background:var(--line); flex-shrink:0; border:none; }
+.switch::after{ content:""; position:absolute; top:2px; inset-inline-start:2px; width:19px; height:19px; border-radius:50%; background:#fff; transition:inset-inline-start .15s; }
+.switch.on{ background:var(--accent); }
+.switch.on::after{ inset-inline-start:19px; }
+
+@keyframes brandPulse{ 0%,100%{ box-shadow:0 8px 18px rgba(21,150,106,.22); } 50%{ box-shadow:0 8px 26px rgba(21,150,106,.42); } }
+@keyframes iconBreathe{ 0%,100%{ transform:translateY(0) scale(1); } 50%{ transform:translateY(-1px) scale(1.06); } }
+@keyframes iconFlow{ 0%,100%{ transform:scale(.75); opacity:.08; } 50%{ transform:scale(1.12); opacity:.3; } }
+@media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+/* Onboarding legend */
+#legend{
+  position:fixed; bottom:22px; inset-inline-end:24px; max-width:270px; background:rgba(255,255,255,.82); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.9);
+  border-radius:16px; padding:14px; box-shadow:var(--shadow); z-index:30;
+}
+html[data-theme="dark"] #legend{ background:rgba(24,35,30,.94); border-color:var(--line); }
+@media (max-width:800px){ #legend{ bottom:84px; inset-inline-start:auto; inset-inline-end:12px; width:220px; max-width:220px; padding:12px; } }
+#legend h4{ font-size:12px; font-weight:700; margin-bottom:8px; }
+#legend .lg-row{ display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--ink-soft); margin-bottom:5px; }
+#legend .lg-row .status-dot{ width:9px; height:9px; }
+#legend button{ border:none; background:var(--accent-soft); color:var(--accent); font-size:11px; font-weight:600; padding:7px 12px; border-radius:8px; width:100%; margin-top:5px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3C9 6 6 9.5 6 13.5C6 17.6 8.7 21 12 21C15.3 21 18 17.6 18 13.5C18 9.5 15 6 12 3Z" stroke="white" stroke-width="1.6"/><path d="M12 21V11" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>Synaps Hydro</h1>
+        <p data-i18n="brand_sub">Smart hydroponic monitoring</p>
+      </div>
+    </div>
+    <nav class="primary-nav" id="primaryNav"></nav>
+    <div class="sidebar-foot"><span class="dot-live"></span><span data-i18n="waiting_for_data">Waiting for data</span></div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <h2 data-i18n-title></h2>
+        <p class="sub" data-i18n-sub></p>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeBtn" title="Toggle theme">
+          <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" stroke-linecap="round"/></svg>
+          <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="display:none"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="content">
+      <!-- HOME -->
+      <section class="screen" id="screen-home">
+        <div id="statusBanner" class="status-banner normal">
+          <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div>
+            <h3 data-i18n="status_normal_title">Everything looks fine</h3>
+            <p data-i18n="status_normal_desc">All readings are within normal range.</p>
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <div class="freshness"><span class="dot"></span><span data-i18n="last_reading">Last reading:</span> <span class="mono" id="lastReadingTime">—</span> — <span id="freshSecs">—</span></div>
+        </div>
+
+        <div class="card led-control">
+          <div class="lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3Z" stroke-linejoin="round"/></svg>
+            <span data-i18n="led_control">Grow-light control</span>
+          </div>
+          <div class="segmented" id="ledSeg">
+            <button data-val="auto" class="active" data-i18n="auto">Auto</button>
+            <button data-val="on" data-i18n="on">On</button>
+            <button data-val="off" data-i18n="off">Off</button>
+          </div>
+          <p class="led-hint" data-i18n="led_sync_hint">The controller receives saved light settings the next time it sends a sensor reading.</p>
+          <span class="led-error" id="ledError" role="status"></span>
+        </div>
+
+        <div class="card rule-summary">
+          <strong data-i18n="physical_rules_title">Physical rules — sensor plausibility</strong>
+          <p data-i18n="physical_rules_desc">Values outside sensor limits are treated as sensor faults, not crop problems.</p>
+          <strong data-i18n="agronomic_rules_title">Agronomic rules — lettuce condition</strong>
+          <p data-i18n="agronomic_rules_desc">Each sensor card shows the configured ideal, attention and critical ranges. Alerts recommend manual checks only.</p>
+        </div>
+        <div class="sensor-grid" id="sensorGrid"></div>
+      </section>
+
+      <!-- ALERTS -->
+      <section class="screen" id="screen-alerts">
+        <div class="filter-row" id="alertFilters"></div>
+        <div id="alertList"></div>
+      </section>
+
+      <!-- HISTORY -->
+      <section class="screen" id="screen-history">
+        <div class="tab-row" id="historyTabs"></div>
+        <div class="range-row" id="rangeRow"></div>
+        <div class="custom-range" id="customRangeInputs" hidden>
+          <input type="date" id="historyFrom" data-i18n-aria-label="history_start_date">
+          <span aria-hidden="true">—</span>
+          <input type="date" id="historyTo" data-i18n-aria-label="history_end_date">
+        </div>
+        <div class="card chart-card">
+          <h3 id="chartTitle">pH Level</h3>
+          <p class="crange" id="chartRangeLabel"></p>
+          <svg id="chartSvg" viewBox="0 0 640 220" style="width:100%; height:auto; display:block;"></svg>
+          <div class="legend-row">
+            <span><span class="sw" style="background:var(--accent)"></span><span data-i18n="reading">Reading</span></span>
+            <span><span class="sw" style="background:var(--accent-soft); border:1px solid var(--accent)"></span><span data-i18n="safe_range">Safe range</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SENSOR HEALTH -->
+      <section class="screen" id="screen-health">
+        <div class="card health-hero" id="healthHero">
+          <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h3 data-i18n="all_healthy">All sensors are healthy</h3>
+          <p data-i18n="all_healthy_desc">No hardware faults detected.</p>
+        </div>
+        <div class="health-grid" id="healthGrid"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="screen" id="screen-settings">
+        <div class="card settings-block">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3Z"/></svg><span data-i18n="language">Language</span></h3>
+          <p class="desc" data-i18n="language_desc">Choose your preferred language</p>
+          <div class="lang-grid" id="langGrid"></div>
+        </div>
+
+        <div class="card settings-block">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" stroke-linecap="round"/></svg><span data-i18n="appearance">Appearance</span></h3>
+          <p class="desc" data-i18n="appearance_desc">Choose how Synaps Hydro looks</p>
+          <div class="theme-row" id="themeRow">
+            <button class="theme-opt" data-val="light">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2" stroke-linecap="round"/></svg>
+              <span data-i18n="light_mode">Light</span>
+            </button>
+            <button class="theme-opt" data-val="dark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+              <span data-i18n="dark_mode">Dark</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card settings-block">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22a2.2 2.2 0 0 0 2.2-2.2h-4.4A2.2 2.2 0 0 0 12 22Z"/><path d="M18.5 15.5V11a6.5 6.5 0 1 0-13 0v4.5L4 18h16l-1.5-2.5Z" stroke-linejoin="round"/></svg><span data-i18n="notifications">Notifications</span></h3>
+          <p class="desc" data-i18n="notifications_desc">Get alerted about important events</p>
+          <div class="toggle-row">
+            <div><div class="t" data-i18n="notif_critical">Critical alerts</div><div class="d" data-i18n="notif_critical_desc">Notify me when a reading is outside the safe range</div></div>
+            <button class="switch" data-key="critical" aria-label="Critical alerts"></button>
+          </div>
+          <div class="toggle-row">
+            <div><div class="t" data-i18n="notif_fault">Sensor fault alerts</div><div class="d" data-i18n="notif_fault_desc">Notify me when a sensor stops working properly</div></div>
+            <button class="switch" data-key="fault" aria-label="Sensor fault alerts"></button>
+          </div>
+          <div class="toggle-row">
+            <div><div class="t" data-i18n="notif_investigate">Investigate alerts</div><div class="d" data-i18n="notif_investigate_desc">Notify me about unusual but non-urgent patterns</div></div>
+            <button class="switch" data-key="investigate" aria-label="Investigate alerts"></button>
+          </div>
+          <p class="desc" id="notificationStatus" aria-live="polite"></p>
+        </div>
+
+        <div class="card settings-block">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="display">Display</span></h3>
+          <p class="desc" data-i18n="display_desc">Units and refresh rate</p>
+          <div class="toggle-row">
+            <div><div class="t" data-i18n="units_temp">Temperature unit</div></div>
+            <div class="segmented"><button class="active" data-unit="c">°C</button><button data-unit="f">°F</button></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="t" data-i18n="refresh_rate">Refresh rate</div></div>
+            <div class="segmented"><button data-refresh="5">5s</button><button class="active" data-refresh="10">10s</button><button data-refresh="30">30s</button></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<nav id="bottomnav"><div class="row" id="bottomNavRow"></div></nav>
+
+<!-- Onboarding legend -->
+<div id="legend">
+  <h4 data-i18n="legend_title">What do the colors mean?</h4>
+  <div class="lg-row"><span class="status-dot normal"></span><span data-i18n="legend_normal">Normal — everything looks fine</span></div>
+  <div class="lg-row"><span class="status-dot investigate"></span><span data-i18n="legend_investigate">Investigate — unusual, not urgent</span></div>
+  <div class="lg-row"><span class="status-dot critical"></span><span data-i18n="legend_critical">Critical — needs attention soon</span></div>
+  <div class="lg-row"><span class="status-dot fault"></span><span data-i18n="legend_fault">Sensor fault — check hardware</span></div>
+  <button id="dismissLegend" data-i18n="got_it">Got it</button>
+</div>
+
+<!-- Alert detail modal -->
+<div id="overlay"><div id="modal"></div></div>
+
+<script>
+/* ============================================================ DATA ============================================================ */
+const RULE_METADATA = {{ rule_metadata|tojson }};
+const SENSOR_PRESENTATION = {
+  ph:{nameKey:"sensor_ph", icon:"drop"},
+  tds:{nameKey:"sensor_tds", icon:"flask"},
+  air_temperature:{nameKey:"sensor_air_temp", icon:"therm"},
+  air_humidity:{nameKey:"sensor_air_hum", icon:"wind"},
+  outside_temperature:{nameKey:"sensor_outside_temp", icon:"therm"},
+  outside_humidity:{nameKey:"sensor_outside_hum", icon:"wind"},
+  water_temperature:{nameKey:"sensor_water_temp", icon:"waves"},
+  water_level:{nameKey:"sensor_water_level", icon:"level"},
+};
+const PHYSICAL_RULES = RULE_METADATA.physical_rules.sensors;
+const AGRONOMIC_RULES = RULE_METADATA.agronomic_rules.sensors;
+const SENSORS = Object.entries(PHYSICAL_RULES).map(([key, rule])=>{
+  const ideal = AGRONOMIC_RULES[key] && AGRONOMIC_RULES[key].ideal[0];
+  return {
+    key,
+    ruleKey:key,
+    ...SENSOR_PRESENTATION[key],
+    unit:rule.unit,
+    field:rule.reading_field || rule.field,
+    physical:rule,
+    agronomic:AGRONOMIC_RULES[key] || null,
+    safe:ideal && Number.isFinite(ideal.min) && Number.isFinite(ideal.max)
+      ? [ideal.min, ideal.max]
+      : [rule.min, rule.max],
+  };
+});
+// Sensor ranges are evaluated independently by deterministic backend rules.
+
+/* ---- runtime state populated by the real backend (see fetchLatest / fetchHistory) ---- */
+const APP_DATA = { latest: null, history: [], historyError: null, historyLoading: false, led: null, ledError: null };
+const STALE_AFTER_MS = 60000;
+let historyRequestId = 0;
+
+// Backend severity vocabulary is normal|investigate|critical|sensor_fault ;
+// the UI's internal token for the last one is "fault" (see CSS/i18n keys).
+function toUiSeverity(sev){ return sev === "sensor_fault" ? "fault" : (sev || "normal"); }
+
+async function fetchLatest(){
+  try{
+    const res = await fetch("/api/latest");
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.status === "waiting") {
+      APP_DATA.latest = null;
+    } else if (data && !data.error) {
+      APP_DATA.latest = data;
+    }
+    return APP_DATA.latest;
+  }catch(e){ console.warn("fetchLatest failed", e); return null; }
+}
+
+async function fetchHistory(url = "/api/history"){
+  const requestId = ++historyRequestId;
+  APP_DATA.historyLoading = true;
+  try{
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`History request failed (${res.status})`);
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error("History API returned an invalid response");
+    if (requestId === historyRequestId){
+      APP_DATA.history = data;
+      APP_DATA.historyError = null;
+    }
+  }catch(e){
+    if (requestId === historyRequestId){
+      APP_DATA.historyError = e;
+      console.warn("fetchHistory failed", e);
+    }
+  }finally{
+    if (requestId === historyRequestId) APP_DATA.historyLoading = false;
+  }
+  return APP_DATA.history;
+}
+
+async function fetchLed(){
+  try{
+    const res = await fetch("/api/led");
+    if (!res.ok) throw new Error(`LED settings request failed (${res.status})`);
+    APP_DATA.led = await res.json();
+    APP_DATA.ledError = null;
+  }catch(e){
+    APP_DATA.ledError = e;
+    console.warn("fetchLed failed", e);
+  }
+  return APP_DATA.led;
+}
+
+async function setLed(mode, manualState){
+  const body = { mode };
+  if (mode === "manual") body.manual_state = manualState;
+  try{
+    const res = await fetch("/api/led", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`LED update failed (${res.status})`);
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
+    APP_DATA.led = result;
+    APP_DATA.ledError = null;
+  }catch(e){
+    APP_DATA.ledError = e;
+    console.warn("setLed failed", e);
+  }
+  renderHome();
+}
+
+/* Build the Alerts-screen list from /api/history (newest first). */
+function alertsFromHistory(){
+  const events = [];
+  let currentEvent = null;
+  APP_DATA.history.forEach((r, i)=>{
+    const sev = toUiSeverity(r.severity);
+    if (sev === "normal"){
+      currentEvent = null;
+      return;
+    }
+    const rec = (r.recommendations && r.recommendations[0]) || null;
+    const sensorKeys = (r.recommendations || [])
+      .map(x => x.sensor || SENSORS.find(s => s.field === x.type || s.key === x.type )?.key)
+      .filter(Boolean);
+    const invalid = (r.level1 && (r.level1.invalid_sensors || r.level1.invalid_model_fields)) || {};
+    const context = (r.level1 && r.level1.context_issues) || {};
+    const temporalIssues = [
+      (r.level1 && r.level1.frozen_sensors) || {},
+      (r.level1 && r.level1.impossible_jumps) || {},
+    ];
+    Object.keys(invalid).concat(Object.keys(context), ...temporalIssues.map(Object.keys)).forEach(key=>{
+      if (SENSORS.some(sensor=>sensor.key===key)) sensorKeys.push(key);
+    });
+    const signature = JSON.stringify([
+      sev,
+      r.final_decision,
+      (r.recommendations || []).map(item=>`${item.type}:${item.sensor || ""}`).sort(),
+      Object.keys(invalid).concat(Object.keys(context), ...temporalIssues.map(Object.keys)).sort(),
+    ]);
+    if (currentEvent && currentEvent.signature === signature){
+      currentEvent.raw = r;
+      currentEvent.count += 1;
+      currentEvent.sensors = [...new Set(currentEvent.sensors.concat(sensorKeys))];
+      currentEvent.recordedAt = r.recorded_at || r.timestamp;
+      return;
+    }
+    currentEvent = {
+      id:r.recorded_at || r.timestamp || i,
+      signature,
+      sev,
+      sensors: [...new Set(sensorKeys)],
+      count:1,
+      recordedAt:r.recorded_at || r.timestamp,
+      raw: r,
+    };
+    events.push(currentEvent);
+  });
+
+  return events.reverse().map(event=>{
+    const raw = event.raw;
+    const rec = (raw.recommendations && raw.recommendations[0]) || null;
+    const d = event.recordedAt ? new Date(event.recordedAt) : null;
+    const translated = localizedRecommendation(raw);
+    return {
+      ...event,
+      time: d && !Number.isNaN(d.getTime())
+        ? d.toLocaleString(STATE.lang, {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"})
+        : "--",
+      title: translated ? translated.title : (raw.final_decision || (rec ? rec.title : "—")),
+      desc: translated ? translated.message : (raw.user_message || (rec ? rec.message : "")),
+    };
+  });
+}
+
+/* ============================================================ I18N ============================================================ */
+const I18N = {
+en:{
+  dir:"ltr",
+  brand_sub:"Smart hydroponic monitoring",
+  nav_home:"Home", nav_alerts:"Alerts", nav_history:"History", nav_health:"Sensor Health", nav_settings:"Settings",
+  title_home:"Live Overview", sub_home:"Greenhouse monitoring",
+  title_alerts:"Alerts", sub_alerts:"Past events and what to check",
+  title_history:"Trends", sub_history:"See how each sensor changed over time",
+  title_health:"Sensor Health", sub_health:"Hardware diagnostics for all sensors",
+  title_settings:"Settings", sub_settings:"Language, notifications and display",
+  updated_ago:"Live data connected",
+  stale_data:"Data is stale",
+  status_stale_title:"Live data is delayed",
+  status_stale_desc:"No new sensor reading has arrived recently. Check the device or connection.",
+  waiting_for_data:"Waiting for data",
+  status_normal_title:"Everything looks fine", status_normal_desc:"All available readings are within their target ranges.",
+  status_investigate_title:"Readings need review", status_investigate_desc:"One or more readings are in an agronomic attention range.",
+  status_critical_title:"Needs attention", status_critical_desc:"One or more readings are in a critical agronomic range.",
+  status_fault_title:"Sensor fault", status_fault_desc:"A sensor reading is impossible — check the hardware.",
+  last_reading:"Last reading:",
+  led_control:"Grow-light control", auto:"Auto", on:"On", off:"Off",
+  led_save_error:"Could not save the light setting to the dashboard. Check that the dashboard server is running, then retry.",
+  led_sync_hint:"The controller receives saved light settings the next time it sends a sensor reading. The light may not change until then.",
+  sensor_ph:"pH Level", sensor_tds:"Nutrient Strength", sensor_air_temp:"Air Temperature",
+  physical_rules_title:"Physical rules — sensor plausibility",
+  physical_rules_desc:"Values outside sensor limits are treated as sensor faults, not crop problems.",
+  agronomic_rules_title:"Agronomic rules — lettuce condition",
+  agronomic_rules_desc:"Each sensor card shows the configured ideal, attention and critical ranges. Alerts recommend manual checks only.",
+  rule_physical:"Physical",
+  rule_ideal:"Ideal",
+  rule_attention:"Attention",
+  rule_critical:"Critical",
+  status_attention:"Attention",
+  sensor_air_hum:"Air Humidity", sensor_outside_temp:"Outside Temperature", sensor_outside_hum:"Outside Humidity",
+  sensor_water_temp:"Water Temperature", sensor_water_level:"Water Level",
+  filter_all:"All", filter_investigate:"Investigate", filter_critical:"Critical", filter_fault:"Sensor Fault", filter_normal:"Normal",
+  al1_title:"Readings need review", al1_desc:"Some readings are outside recommended ranges or sensors are not connected.",
+  al1_action:"Suggested: keep an eye on nutrient dosing over the next few hours.",
+  al2_title:"Water temperature is too high", al2_desc:"Water temperature has risen above the safe range. High water temperature can reduce oxygen and stress roots.",
+  al2_action:"Suggested: check the chiller or add shade to the reservoir.",
+  al3_title:"Air humidity reading is impossible", al3_desc:"The air humidity sensor reported a value above 100%, which is physically impossible. This means the sensor itself needs checking.",
+  al3_action:"Suggested: inspect the humidity sensor wiring and connection.",
+  al4_title:"Back to normal", al4_desc:"All readings returned to the normal range.",
+  reading:"Reading", safe_range:"Reference range",
+  all_healthy:"All sensors are healthy", all_healthy_desc:"No hardware faults detected.",
+  some_faulty:"Sensor fault detected", some_faulty_desc:"One or more hardware faults were detected — see below.",
+  some_missing:"Sensor data incomplete", some_missing_desc:"Some sensors have not provided a reading.",
+  sensor_missing:"No reading",
+  status_ok:"Normal", status_bad:"Fault detected",
+  language:"Language", language_desc:"Choose your preferred language",
+  appearance:"Appearance", appearance_desc:"Choose how Synaps Hydro looks",
+  light_mode:"Light", dark_mode:"Dark",
+  notifications:"Notifications", notifications_desc:"Get alerted about important events",
+  notif_critical:"Critical alerts", notif_critical_desc:"Notify me when a reading is outside the safe range",
+  notif_fault:"Sensor fault alerts", notif_fault_desc:"Notify me when a sensor stops working properly",
+  notif_investigate:"Investigate alerts", notif_investigate_desc:"Notify me about unusual but non-urgent patterns",
+  display:"Display", display_desc:"Temperature units and live update interval",
+  units_temp:"Temperature unit", refresh_rate:"Live update interval",
+  notifications_unavailable:"Browser notifications are not supported here.",
+  notifications_blocked:"Browser notifications are blocked. Allow them in browser settings to enable alerts.",
+  notifications_ready:"New alerts are notified while this page is in the background. Repeats are limited to one every 15 minutes; higher-severity alerts are immediate.",
+  notifications_prompt:"Turn on an alert type to allow browser notifications.",
+  legend_title:"What do the colors mean?",
+  legend_normal:"Normal — everything looks fine", legend_investigate:"Investigate — unusual, not urgent",
+  legend_critical:"Critical — needs attention soon", legend_fault:"Sensor fault — check hardware",
+  got_it:"Got it", today:"Today", last7:"Last 7 days", custom:"Custom",
+  select_custom_range:"Choose a start and end date.", invalid_custom_range:"End date must not be before the start date.",
+  history_start_date:"Start date", history_end_date:"End date",
+  values_at_time:"Values at this time", close:"Close",
+  detected_by_rules:"Suggested action",
+  decision_support_note:"The system does not act on its own. Check the reading before making changes.",
+  no_data_title:"Waiting for first reading", no_data_desc:"No data received from the device yet.",
+  no_alerts_yet:"No alerts yet — everything's been quiet.",
+  readings_word:"readings", not_enough_history:"Not enough history yet to draw a chart.",
+  history_load_error:"Could not load history. Check the connection and try again.",
+  history_loading:"Loading history…",
+  rec_ph_title:"pH rule alert", rec_ph:"Check the pH reading and follow the crop protocol.",
+  rec_tds_title:"TDS rule alert", rec_tds:"Check the TDS scale, calibration and nutrient solution.",
+  rec_water_temp_title:"Water-temperature rule alert", rec_water_temp:"Check the probe, aeration and reservoir temperature.",
+  rec_water_level_title:"Water-level rule alert", rec_water_level:"Check the reservoir level and refill if needed.",
+  rec_water_level_critical_title:"Critical water level", rec_water_level_critical:"Check the reservoir level and refill if needed.",
+  rec_sensor_fault_title:"Sensor fault", rec_sensor_fault:"Check the sensor wiring and condition.",
+  rec_incomplete_title:"Incomplete sensor data", rec_incomplete:"Missing readings are ignored; check the sensor connection if needed.",
+  rec_status_attention:"Needs checking", rec_status_critical:"Outside the recommended range", rec_status_sensor_fault:"Sensor to check",
+  rec_measured_value:"Current reading", rec_action_label:"What to do",
+  alerts_multiple_title:"{count} sensors need checking",
+  alerts_multiple_desc:"Unusual readings detected. Open the alert to see what to check.",
+},
+fr:{
+  dir:"ltr",
+  brand_sub:"Surveillance hydroponique intelligente",
+  nav_home:"Accueil", nav_alerts:"Alertes", nav_history:"Historique", nav_health:"État capteurs", nav_settings:"Réglages",
+  title_home:"Aperçu en direct", sub_home:"Surveillance de la serre",
+  title_alerts:"Alertes", sub_alerts:"Événements passés et actions à vérifier",
+  title_history:"Tendances", sub_history:"Évolution de chaque capteur dans le temps",
+  title_health:"État des capteurs", sub_health:"Diagnostic matériel de tous les capteurs",
+  title_settings:"Réglages", sub_settings:"Langue, notifications et affichage",
+  updated_ago:"Données en direct",
+  stale_data:"Données anciennes",
+  status_stale_title:"Données en direct retardées",
+  status_stale_desc:"Aucune nouvelle mesure reçue récemment. Vérifiez l'appareil ou la connexion.",
+  waiting_for_data:"En attente de données",
+  status_normal_title:"Tout va bien", status_normal_desc:"Les mesures disponibles sont dans leurs plages cibles.",
+  status_investigate_title:"Mesures à vérifier", status_investigate_desc:"Une ou plusieurs mesures sont dans une plage agronomique d'attention.",
+  status_critical_title:"Attention requise", status_critical_desc:"Une ou plusieurs mesures sont dans une plage agronomique critique.",
+  status_fault_title:"Panne de capteur", status_fault_desc:"Une lecture est impossible — vérifiez le matériel.",
+  last_reading:"Dernière lecture :",
+  led_control:"Contrôle éclairage", auto:"Auto", on:"Marche", off:"Arrêt",
+  led_save_error:"Impossible d'enregistrer le réglage sur le tableau de bord. Vérifiez que le serveur est lancé, puis réessayez.",
+  led_sync_hint:"Le boîtier reçoit le réglage au prochain envoi d'une mesure. La lampe peut ne pas changer avant cet envoi.",
+  sensor_ph:"Niveau pH", sensor_tds:"Nutriments (TDS)", sensor_air_temp:"Température air",
+  physical_rules_title:"Règles physiques — plausibilité des capteurs",
+  physical_rules_desc:"Une valeur hors des limites du capteur est signalée comme un défaut matériel, pas comme un problème de culture.",
+  agronomic_rules_title:"Règles agronomiques — état de la laitue",
+  agronomic_rules_desc:"Chaque carte affiche les plages configurées : idéale, attention et critique. Les alertes conseillent une vérification manuelle.",
+  rule_physical:"Physique",
+  rule_ideal:"Idéal",
+  rule_attention:"Attention",
+  rule_critical:"Critique",
+  status_attention:"Attention",
+  sensor_air_hum:"Humidité air", sensor_outside_temp:"Température extérieure", sensor_outside_hum:"Humidité extérieure",
+  sensor_water_temp:"Température eau", sensor_water_level:"Niveau d'eau",
+  filter_all:"Tout", filter_investigate:"À surveiller", filter_critical:"Critique", filter_fault:"Panne capteur", filter_normal:"Normal",
+  al1_title:"Mesures à vérifier", al1_desc:"Certaines mesures sont hors des plages recommandées ou des capteurs sont absents.",
+  al1_action:"Suggestion : surveillez le dosage des nutriments dans les prochaines heures.",
+  al2_title:"Température de l'eau trop élevée", al2_desc:"La température de l'eau a dépassé la plage sûre. Cela peut réduire l'oxygène et stresser les racines.",
+  al2_action:"Suggestion : vérifiez le refroidisseur ou ombragez le réservoir.",
+  al3_title:"Lecture d'humidité impossible", al3_desc:"Le capteur d'humidité a signalé une valeur supérieure à 100%, ce qui est physiquement impossible. Le capteur doit être vérifié.",
+  al3_action:"Suggestion : vérifiez le câblage du capteur d'humidité.",
+  al4_title:"Retour à la normale", al4_desc:"Toutes les valeurs sont revenues à la normale.",
+  reading:"Valeur", safe_range:"Plage de référence",
+  all_healthy:"Tous les capteurs fonctionnent", all_healthy_desc:"Aucune panne matérielle détectée.",
+  some_faulty:"Panne de capteur détectée", some_faulty_desc:"Une ou plusieurs pannes matérielles ont été détectées — voir ci-dessous.",
+  some_missing:"Données capteurs incomplètes", some_missing_desc:"Certains capteurs n'ont pas fourni de mesure.",
+  sensor_missing:"Aucune mesure",
+  status_ok:"Normal", status_bad:"Panne détectée",
+  language:"Langue", language_desc:"Choisissez votre langue préférée",
+  appearance:"Apparence", appearance_desc:"Choisissez l'apparence de Synaps Hydro",
+  light_mode:"Clair", dark_mode:"Sombre",
+  notifications:"Notifications", notifications_desc:"Soyez alerté des événements importants",
+  notif_critical:"Alertes critiques", notif_critical_desc:"Me notifier quand une valeur dépasse la plage sûre",
+  notif_fault:"Alertes de panne", notif_fault_desc:"Me notifier si un capteur ne fonctionne plus correctement",
+  notif_investigate:"Alertes à surveiller", notif_investigate_desc:"Me notifier des anomalies non urgentes",
+  display:"Affichage", display_desc:"Unités de température et fréquence des mises à jour",
+  units_temp:"Unité de température", refresh_rate:"Fréquence des mises à jour",
+  notifications_unavailable:"Les notifications du navigateur ne sont pas prises en charge ici.",
+  notifications_blocked:"Les notifications sont bloquées. Autorisez-les dans les réglages du navigateur.",
+  notifications_ready:"Les nouvelles alertes sont notifiées lorsque la page est en arrière-plan. Les répétitions sont limitées à une par 15 minutes ; une aggravation reste immédiate.",
+  notifications_prompt:"Activez un type d'alerte pour autoriser les notifications du navigateur.",
+  legend_title:"Que signifient les couleurs ?",
+  legend_normal:"Normal — tout va bien", legend_investigate:"À surveiller — inhabituel, non urgent",
+  legend_critical:"Critique — attention requise", legend_fault:"Panne capteur — vérifier le matériel",
+  got_it:"Compris", today:"Aujourd'hui", last7:"7 derniers jours", custom:"Personnalisé",
+  select_custom_range:"Choisissez une date de début et une date de fin.", invalid_custom_range:"La date de fin doit être postérieure ou égale à la date de début.",
+  history_start_date:"Date de début", history_end_date:"Date de fin",
+  values_at_time:"Valeurs à ce moment", close:"Fermer",
+  detected_by_rules:"À faire",
+  decision_support_note:"Le système n'agit pas seul. Vérifiez la mesure avant tout changement.",
+  no_data_title:"En attente de la première lecture", no_data_desc:"Aucune donnée reçue de l'appareil pour le moment.",
+  no_alerts_yet:"Aucune alerte pour l'instant — tout est calme.",
+  readings_word:"lectures", not_enough_history:"Pas encore assez d'historique pour tracer un graphique.",
+  history_load_error:"Impossible de charger l'historique. Vérifiez la connexion et réessayez.",
+  history_loading:"Chargement de l'historique…",
+  led_save_error:"Impossible d'enregistrer le réglage sur le tableau de bord. Vérifiez que le serveur est lancé, puis réessayez.",
+  led_sync_hint:"Le boîtier reçoit le réglage au prochain envoi d'une mesure. La lampe peut ne pas changer avant cet envoi.",
+  rec_ph_title:"Alerte pH", rec_ph:"Vérifiez la mesure du pH et suivez le protocole de culture.",
+  rec_tds_title:"Alerte TDS", rec_tds:"Vérifiez l'échelle, l'étalonnage et la solution nutritive.",
+  rec_water_temp_title:"Alerte température de l'eau", rec_water_temp:"Vérifiez la sonde, l'aération et la température du réservoir.",
+  rec_water_level_title:"Alerte niveau d'eau", rec_water_level:"Vérifiez le réservoir et faites l'appoint si nécessaire.",
+  rec_water_level_critical_title:"Niveau d'eau critique", rec_water_level_critical:"Vérifiez le réservoir et faites l'appoint si nécessaire.",
+  rec_sensor_fault_title:"Défaut capteur", rec_sensor_fault:"Vérifiez le branchement et l'état du capteur.",
+  rec_incomplete_title:"Mesures manquantes", rec_incomplete:"Les valeurs absentes sont ignorées. Vérifiez la connexion si nécessaire.",
+  rec_status_attention:"À surveiller", rec_status_critical:"Hors plage conseillée", rec_status_sensor_fault:"Capteur à vérifier",
+  rec_measured_value:"Valeur mesurée", rec_action_label:"À faire",
+  alerts_multiple_title:"{count} capteurs à vérifier",
+  alerts_multiple_desc:"Des mesures inhabituelles ont été détectées. Ouvrez l’alerte pour savoir quoi vérifier.",
+},
+ar:{
+  dir:"rtl",
+  brand_sub:"مراقبة ذكية للزراعة المائية",
+  nav_home:"الرئيسية", nav_alerts:"التنبيهات", nav_history:"السجل", nav_health:"حالة الحساسات", nav_settings:"الإعدادات",
+  title_home:"نظرة مباشرة", sub_home:"مراقبة الدفيئة",
+  title_alerts:"التنبيهات", sub_alerts:"الأحداث السابقة وما يجب التحقق منه",
+  title_history:"الاتجاهات", sub_history:"تطور كل حساس عبر الزمن",
+  title_health:"حالة الحساسات", sub_health:"تشخيص العتاد لجميع الحساسات",
+  title_settings:"الإعدادات", sub_settings:"اللغة والتنبيهات والعرض",
+  updated_ago:"البيانات مباشرة",
+  stale_data:"البيانات قديمة",
+  status_stale_title:"تأخر وصول البيانات المباشرة",
+  status_stale_desc:"لم تصل قراءة جديدة مؤخراً. تحقق من الجهاز أو الاتصال.",
+  waiting_for_data:"في انتظار البيانات",
+  status_normal_title:"كل شيء على ما يرام", status_normal_desc:"القراءات المتاحة ضمن نطاقاتها المستهدفة.",
+  status_investigate_title:"قراءات تحتاج إلى مراجعة", status_investigate_desc:"قراءة واحدة أو أكثر ضمن نطاق تنبيه زراعي.",
+  status_critical_title:"يتطلب الانتباه", status_critical_desc:"قراءة واحدة أو أكثر ضمن نطاق زراعي حرج.",
+  status_fault_title:"عطل في الحساس", status_fault_desc:"قراءة غير ممكنة فيزيائياً — تحقق من العتاد.",
+  last_reading:"آخر قراءة:",
+  led_control:"التحكم في الإضاءة", auto:"تلقائي", on:"تشغيل", off:"إيقاف",
+  led_save_error:"تعذر تغيير إعداد الإضاءة. تحقق من الاتصال وحاول مجدداً.",
+  sensor_ph:"مستوى الحموضة", sensor_tds:"تركيز المغذيات", sensor_air_temp:"حرارة الهواء",
+  physical_rules_title:"القواعد الفيزيائية — معقولية الحساسات",
+  physical_rules_desc:"القيمة خارج حدود الحساس تُعامل كعطل حساس، وليس كمشكلة في المحصول.",
+  agronomic_rules_title:"القواعد الزراعية — حالة الخس",
+  agronomic_rules_desc:"تعرض كل بطاقة النطاقات المثالية والتنبيه والحرجة. التنبيهات تطلب التحقق اليدوي فقط.",
+  rule_physical:"فيزيائي",
+  rule_ideal:"مثالي",
+  rule_attention:"تنبيه",
+  rule_critical:"حرج",
+  status_attention:"تنبيه",
+  sensor_air_hum:"رطوبة الهواء", sensor_outside_temp:"حرارة الهواء الخارجي", sensor_outside_hum:"رطوبة الهواء الخارجي",
+  sensor_water_temp:"حرارة الماء", sensor_water_level:"مستوى الماء",
+  filter_all:"الكل", filter_investigate:"للمتابعة", filter_critical:"حرج", filter_fault:"عطل حساس", filter_normal:"طبيعي",
+  al1_title:"قراءات تحتاج إلى مراجعة", al1_desc:"بعض القراءات خارج النطاق الموصى به أو توجد حساسات غير موصولة.",
+  al1_action:"اقتراح: راقب جرعة المغذيات خلال الساعات القادمة.",
+  al2_title:"حرارة الماء مرتفعة جداً", al2_desc:"ارتفعت حرارة الماء فوق الحد الآمن. قد يقلل ذلك من الأكسجين ويسبب إجهاداً للجذور.",
+  al2_action:"اقتراح: تحقق من جهاز التبريد أو أضف تظليلاً للخزان.",
+  al3_title:"قراءة رطوبة الهواء غير ممكنة", al3_desc:"سجل حساس الرطوبة قيمة تفوق 100%، وهو أمر غير ممكن فيزيائياً. يجب فحص الحساس نفسه.",
+  al3_action:"اقتراح: افحص توصيلات حساس الرطوبة.",
+  al4_title:"عودة إلى الوضع الطبيعي", al4_desc:"عادت جميع القراءات إلى المعدل الطبيعي.",
+  reading:"القراءة", safe_range:"النطاق المرجعي",
+  all_healthy:"جميع الحساسات تعمل بشكل جيد", all_healthy_desc:"لم يتم رصد أي عطل في العتاد.",
+  some_faulty:"تم رصد عطل في الحساسات", some_faulty_desc:"تم رصد عطل واحد أو أكثر في العتاد — انظر أدناه.",
+  some_missing:"بيانات الحساسات غير مكتملة", some_missing_desc:"لم ترسل بعض الحساسات قراءة.",
+  sensor_missing:"لا توجد قراءة",
+  status_ok:"طبيعي", status_bad:"تم رصد عطل",
+  language:"اللغة", language_desc:"اختر لغتك المفضلة",
+  appearance:"المظهر", appearance_desc:"اختر شكل تطبيق Synaps Hydro",
+  light_mode:"فاتح", dark_mode:"داكن",
+  notifications:"التنبيهات", notifications_desc:"احصل على تنبيهات بالأحداث المهمة",
+  notif_critical:"تنبيهات حرجة", notif_critical_desc:"نبهني عندما تخرج قراءة عن الحد الآمن",
+  notif_fault:"تنبيهات عطل الحساس", notif_fault_desc:"نبهني عندما يتوقف حساس عن العمل بشكل صحيح",
+  notif_investigate:"تنبيهات المتابعة", notif_investigate_desc:"نبهني بالأنماط غير المعتادة غير العاجلة",
+  display:"العرض", display_desc:"وحدات الحرارة ومعدل تحديث البيانات",
+  units_temp:"وحدة الحرارة", refresh_rate:"معدل تحديث البيانات",
+  notifications_unavailable:"إشعارات المتصفح غير مدعومة هنا.",
+  notifications_blocked:"إشعارات المتصفح محظورة. اسمح بها من إعدادات المتصفح.",
+  notifications_ready:"ستصلك إشعارات التنبيهات الجديدة عند عمل الصفحة في الخلفية. تُحد التكرارات بإشعار واحد كل 15 دقيقة، مع إرسال التنبيه الأشد فوراً.",
+  notifications_prompt:"فعّل نوع تنبيه للسماح بإشعارات المتصفح.",
+  legend_title:"ماذا تعني الألوان؟",
+  legend_normal:"طبيعي — كل شيء على ما يرام", legend_investigate:"للمتابعة — غير معتاد وغير عاجل",
+  legend_critical:"حرج — يتطلب الانتباه قريباً", legend_fault:"عطل حساس — تحقق من العتاد",
+  got_it:"فهمت", today:"اليوم", last7:"آخر 7 أيام", custom:"مخصص",
+  select_custom_range:"اختر تاريخ البداية والنهاية.", invalid_custom_range:"يجب ألا يسبق تاريخ النهاية تاريخ البداية.",
+  history_start_date:"تاريخ البداية", history_end_date:"تاريخ النهاية",
+  values_at_time:"القيم في هذه اللحظة", close:"إغلاق",
+  detected_by_rules:"الإجراء المقترح",
+  decision_support_note:"النظام لا يتخذ إجراءً تلقائياً. تحقق من القراءة قبل إجراء أي تغيير.",
+  no_data_title:"في انتظار أول قراءة", no_data_desc:"لم يتم استلام أي بيانات من الجهاز بعد.",
+  no_alerts_yet:"لا توجد تنبيهات حتى الآن.",
+  readings_word:"قراءة", not_enough_history:"لا يوجد سجل كافٍ بعد لرسم مخطط.",
+  history_load_error:"تعذر تحميل السجل. تحقق من الاتصال وحاول مجدداً.",
+  history_loading:"جارٍ تحميل السجل…",
+  led_save_error:"تعذر حفظ إعداد الإضاءة في لوحة التحكم. تحقق من تشغيل الخادم ثم أعد المحاولة.",
+  led_sync_hint:"تصل الإعدادات إلى الجهاز عند إرساله القراءة التالية. قد لا تتغير الإضاءة قبل ذلك.",
+  rec_ph_title:"درجة الحموضة خارج النطاق الآمن", rec_ph:"تحقق يدوياً من قياس الحموضة واضبطه وفقاً لبروتوكولك.",
+  rec_tds_title:"قيمة TDS خارج النطاق المستهدف للخس", rec_tds:"النطاق المستهدف 600–900 جزء بالمليون (مقياس 500). تحقق من القراءة وجرعة المغذيات قبل تعديلها.",
+  rec_water_temp_title:"حرارة الماء خارج النطاق الموصى به", rec_water_temp:"تحقق يدوياً من الخزان والتبريد.",
+  rec_water_level_title:"مستوى الماء منخفض", rec_water_level:"تحقق يدوياً من الخزان وأضف الماء عند الحاجة.",
+  rec_water_level_critical_title:"مستوى الماء حرج", rec_water_level_critical:"تحقق يدوياً من الخزان وأضف الماء.",
+  rec_sensor_fault_title:"عطل في الحساس", rec_sensor_fault:"تم اكتشاف قراءة مستحيلة فيزيائياً. تحقق من الحساس يدوياً.",
+  rec_incomplete_title:"بيانات الحساسات غير مكتملة", rec_incomplete:"بعض القراءات مفقودة. تحقق من توصيلات الحساسات.",
+  rec_status_attention:"تحتاج إلى متابعة", rec_status_critical:"خارج النطاق الموصى به", rec_status_sensor_fault:"تحقق من الحساس",
+  rec_measured_value:"القراءة الحالية", rec_action_label:"ما يجب فعله",
+  alerts_multiple_title:"تحقق من {count} حساسات",
+  alerts_multiple_desc:"تم رصد قراءات غير معتادة. افتح التنبيه لمعرفة ما يجب التحقق منه.",
+}
+};
+
+/* ============================================================ ICONS ============================================================ */
+const ICONS = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1v-9" stroke-linejoin="round"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22a2.2 2.2 0 0 0 2.2-2.2h-4.4A2.2 2.2 0 0 0 12 22Z"/><path d="M18.5 15.5V11a6.5 6.5 0 1 0-13 0v4.5L4 18h16l-1.5-2.5Z" stroke-linejoin="round"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h16" stroke-linecap="round"/><path d="M7 15l3.5-4 3 2.5L19 8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.3-8.8C1.3 8 2.8 4.8 6 4.2c2-.4 3.7.6 6 3 2.3-2.4 4-3.4 6-3 3.2.6 4.7 3.8 3.3 7C19 15.6 12 20 12 20Z" stroke-linejoin="round"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.3-.9-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9c.5.4 1.1.7 1.7 1l.4 2.5h4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.3.9 2-3.4-2-1.5Z" stroke-linejoin="round"/></svg>',
+  ai:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v2M5.6 5.6 7 7M3 12h2m14 0h2m-3.6-6.4L16 7M8 17.5h8M9.5 21h5M7.5 14.5a6 6 0 1 1 9 0c-.8.7-1.2 1.6-1.3 3h-5.4c-.1-1.4-.5-2.3-1.3-3Z" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  drop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z" stroke-linejoin="round"/></svg>',
+  flask:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 3h6M10 3v5.5L5.5 17a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 8.5V3" stroke-linejoin="round"/></svg>',
+  therm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 14.5V5a2 2 0 1 0-4 0v9.5a4 4 0 1 0 4 0Z" stroke-linejoin="round"/></svg>',
+  wind:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5M3 12h15a2.5 2.5 0 1 1-2.5 2.5M3 16h9a2 2 0 1 1-2 2" stroke-linecap="round"/></svg>',
+  waves:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0M2 14c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0M2 20c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0" stroke-linecap="round"/></svg>',
+  level:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M6 13c2 1.2 4 1.2 6 0s4-1.2 6 0"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4.5M12 17h.01M10.3 4.4 2.7 18a1.7 1.7 0 0 0 1.5 2.5h15.6a1.7 1.7 0 0 0 1.5-2.5L13.7 4.4a1.7 1.7 0 0 0-3.4 0Z" stroke-linejoin="round"/></svg>',
+  alertc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01" stroke-linecap="round"/></svg>',
+  noSignal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18M8.5 8.7A9.6 9.6 0 0 0 4 12M2 6.5a13 13 0 0 1 3-2.2M7 12.5a6.4 6.4 0 0 1 2.6-1.8M12 16.2h.01M11 12.7A3.6 3.6 0 0 1 14 12M17.5 8.7a9.6 9.6 0 0 1 2.7 2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  bulb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3Z" stroke-linejoin="round"/></svg>',
+};
+
+/* ============================================================ STATE ============================================================ */
+function readPreferences(){
+  try{
+    return JSON.parse(localStorage.getItem("synapsHydro.preferences") || "{}");
+  }catch(error){
+    console.warn("Could not read dashboard preferences", error);
+    return {};
+  }
+}
+
+const savedPreferences = readPreferences();
+const STATE = {
+  lang:["en","fr","ar"].includes(savedPreferences.lang) ? savedPreferences.lang : "en",
+  theme:["light","dark"].includes(savedPreferences.theme) ? savedPreferences.theme : "light",
+  tempUnit:["c","f"].includes(savedPreferences.tempUnit) ? savedPreferences.tempUnit : "c",
+  refreshSeconds:[5,10,30].includes(savedPreferences.refreshSeconds) ? savedPreferences.refreshSeconds : 5,
+  notifications:{
+    critical:Boolean(savedPreferences.notifications && savedPreferences.notifications.critical),
+    fault:Boolean(savedPreferences.notifications && savedPreferences.notifications.fault),
+    investigate:Boolean(savedPreferences.notifications && savedPreferences.notifications.investigate),
+  },
+  lastNotificationAt:Number.isFinite(savedPreferences.lastNotificationAt)
+    ? savedPreferences.lastNotificationAt
+    : 0,
+  lastNotificationSeverity:["investigate","critical","fault"].includes(savedPreferences.lastNotificationSeverity)
+    ? savedPreferences.lastNotificationSeverity
+    : "normal",
+  seenAlertIds:Array.isArray(savedPreferences.seenAlertIds)
+    ? savedPreferences.seenAlertIds.filter(id=>typeof id==="string" || typeof id==="number")
+    : [],
+  screen:"home", alertFilter:"all", historySensor:"ph", historyRange:"today", led:"auto",
+};
+let notificationStatusKey = "notifications_prompt";
+
+function persistPreferences(){
+  try{
+    localStorage.setItem("synapsHydro.preferences", JSON.stringify({
+      lang:STATE.lang,
+      theme:STATE.theme,
+      tempUnit:STATE.tempUnit,
+      refreshSeconds:STATE.refreshSeconds,
+      notifications:STATE.notifications,
+      seenAlertIds:STATE.seenAlertIds,
+      lastNotificationAt:STATE.lastNotificationAt,
+      lastNotificationSeverity:STATE.lastNotificationSeverity,
+    }));
+  }catch(error){
+    console.warn("Could not save dashboard preferences", error);
+  }
+}
+
+function isTemperatureSensor(sensor){
+  return ["air_temperature","outside_temperature","water_temperature"].includes(sensor.key);
+}
+
+function displayTemperature(value){
+  return STATE.tempUnit === "f" ? value * 9 / 5 + 32 : value;
+}
+
+function displaySensorUnit(sensor){
+  return isTemperatureSensor(sensor) ? (STATE.tempUnit === "f" ? "°F" : "°C") : sensor.unit;
+}
+
+function t(key){ return (I18N[STATE.lang] && I18N[STATE.lang][key]) || I18N.en[key] || key; }
+
+function recommendationTranslation(raw){
+  const recommendations = (raw && raw.recommendations) || [];
+  const rec = recommendations.find(item=>item.type !== "incomplete_data") || recommendations[0] || {};
+  if (rec.details) {
+    const sensor = SENSORS.find(item=>item.key === rec.sensor);
+    if (sensor) {
+      const severityKey = rec.level === "sensor_fault"
+        ? "sensor_fault"
+        : rec.level === "critical" ? "critical" : "attention";
+      const value = typeof rec.value === "number" && Number.isFinite(rec.value)
+        ? (isTemperatureSensor(sensor) ? displayTemperature(rec.value) : rec.value)
+            .toLocaleString(STATE.lang, {maximumFractionDigits:1})
+        : rec.value;
+      return {
+        title:`${t(`rec_status_${severityKey}`)} : ${t(sensor.nameKey)}`,
+        message:`${t("rec_measured_value")} : ${value} ${displaySensorUnit(sensor)}`,
+        action:rec.action || t("rec_sensor_fault"),
+      };
+    }
+  }
+  if (rec.type === "ph") return ["rec_ph_title", "rec_ph"];
+  if (rec.type === "tds") return ["rec_tds_title", "rec_tds"];
+  if (rec.type === "water_temp") return ["rec_water_temp_title", "rec_water_temp"];
+  if (rec.type === "water_level") {
+    return raw.level3 && raw.level3.water_level_status === "critical_low"
+      ? ["rec_water_level_critical_title", "rec_water_level_critical"]
+      : ["rec_water_level_title", "rec_water_level"];
+  }
+  if (rec.type === "sensor_fault") return ["rec_sensor_fault_title", "rec_sensor_fault"];
+  if (rec.type === "incomplete_data") return ["rec_incomplete_title", "rec_incomplete"];
+  return null;
+}
+
+function localizedRecommendation(raw){
+  const recommendations = (raw && raw.recommendations) || [];
+  const relevant = recommendations.filter(item=>item.type !== "incomplete_data");
+  const translated = (relevant.length ? relevant : recommendations)
+    .map(item=>recommendationTranslation({...raw, recommendations:[item]}))
+    .filter(Boolean);
+  if (translated.length){
+    const sensorCount = new Set(relevant.map(item=>item.sensor).filter(Boolean)).size;
+    if (sensorCount > 1) {
+      return {
+        title:t("alerts_multiple_title").replace("{count}", sensorCount),
+        message:t("alerts_multiple_desc"),
+        detailMessage:translated[0].message,
+        action:translated[0].action,
+      };
+    }
+    return {
+      title:typeof translated[0] === "object" ? translated[0].title : t(translated[0][0]),
+      message:typeof translated[0] === "object"
+        ? translated[0].message
+        : t(translated[0][1]),
+      detailMessage:typeof translated[0] === "object" ? translated[0].message : null,
+      action:typeof translated[0] === "object" ? translated[0].action : null,
+    };
+  }
+
+  const severity = toUiSeverity(raw && raw.severity);
+  const status = ["investigate","critical","fault"].includes(severity) ? severity : "investigate";
+  return {
+    title:t(`status_${status}_title`),
+    message:t(`status_${status}_desc`),
+  };
+}
+
+const NAV_ITEMS = [
+  { id:"home", icon:"home", key:"nav_home" },
+  { id:"alerts", icon:"bell", key:"nav_alerts" },
+  { id:"history", icon:"chart", key:"nav_history" },
+  { id:"health", icon:"heart", key:"nav_health" },
+  { id:"settings", icon:"gear", key:"nav_settings" },
+];
+
+function unreadAlertCount(){
+  const seen = new Set(STATE.seenAlertIds.map(String));
+  return alertsFromHistory().filter(alert=>!seen.has(String(alert.id))).length;
+}
+
+function markAlertsAsRead(alerts){
+  if (document.hidden || !alerts.length) return;
+  const seen = new Set(STATE.seenAlertIds.map(String));
+  alerts.forEach(alert=>seen.add(String(alert.id)));
+  STATE.seenAlertIds = [...seen].slice(-5000);
+  persistPreferences();
+  renderNav();
+}
+
+/* ============================================================ RENDER: NAV ============================================================ */
+function renderNav(){
+  const sidebarNav = document.getElementById("primaryNav");
+  const bottomNav = document.getElementById("bottomNavRow");
+  sidebarNav.innerHTML = ""; bottomNav.innerHTML = "";
+  NAV_ITEMS.forEach(item=>{
+    const alertCount = item.id === "alerts" ? unreadAlertCount() : 0;
+    const b = document.createElement("button");
+    b.className = "nav-item" + (STATE.screen===item.id ? " active" : "");
+    b.innerHTML = ICONS[item.icon] + `<span>${t(item.key)}</span>` + (alertCount ? `<span class="badge">${alertCount}</span>` : "");
+    b.onclick = ()=>{
+      STATE.screen = item.id;
+      if (item.id === "alerts") markAlertsAsRead(alertsFromHistory());
+      if (item.id === "history" || item.id === "alerts") APP_DATA.historyLoading = true;
+      render();
+      if (item.id === "history" || item.id === "alerts") refreshHistoryDependent();
+    };
+    sidebarNav.appendChild(b);
+
+    const bb = document.createElement("button");
+    bb.className = STATE.screen===item.id ? "active" : "";
+    bb.innerHTML = ICONS[item.icon] + `<span>${t(item.key)}</span>` + (alertCount ? `<span class="dot"></span>` : "");
+    bb.onclick = ()=>{
+      STATE.screen = item.id;
+      if (item.id === "alerts") markAlertsAsRead(alertsFromHistory());
+      if (item.id === "history" || item.id === "alerts") APP_DATA.historyLoading = true;
+      render();
+      if (item.id === "history" || item.id === "alerts") refreshHistoryDependent();
+    };
+    bottomNav.appendChild(bb);
+  });
+}
+
+/* ============================================================ RENDER: TOPBAR ============================================================ */
+function renderTopbar(){
+  document.querySelector("[data-i18n-title]").textContent = t("title_"+STATE.screen);
+  document.querySelector("[data-i18n-sub]").textContent = t("sub_"+STATE.screen);
+}
+
+/* ============================================================ RENDER: HOME ============================================================ */
+function sensorStatus(sensorKey, latest){
+  if (!latest) return "pending";
+  const sensor = SENSORS.find(item => item.key === sensorKey);
+  if (!sensor) return "pending";
+  const sensorData = latest.sensor_data || {};
+  const l1 = latest.level1 || {};
+  const l3 = latest.level3 || {};
+  const physicalIssues = [
+    l1.invalid_sensors, l1.invalid_model_fields, l1.context_issues,
+    l1.frozen_sensors, l1.impossible_jumps,
+  ].filter(Boolean);
+  if (physicalIssues.some(issues=>issues[sensorKey] !== undefined)) return "fault";
+  if (sensorData[sensor.field] == null) return "pending";
+  const status = l3[sensor.agronomic && sensor.agronomic.status_key];
+  if (status === "critical") return "critical";
+  if (status === "attention") return "attention";
+  return "normal";
+}
+
+function formatRuleBand(band){
+  const format = value=>new Intl.NumberFormat(STATE.lang, {maximumFractionDigits:2}).format(value);
+  if (Number.isFinite(band.min) && Number.isFinite(band.max)){
+    const lower = `${band.min_inclusive === false ? ">" : ""}${format(band.min)}`;
+    const upper = `${band.max_inclusive === false ? "<" : ""}${format(band.max)}`;
+    return `${lower}–${upper}`;
+  }
+  if (Number.isFinite(band.min)) return `${band.min_inclusive === false ? ">" : "≥"}${format(band.min)}`;
+  return `${band.max_inclusive === false ? "<" : "≤"}${format(band.max)}`;
+}
+
+function ruleRangeText(sensor){
+  const physical = `${formatRuleBand({min:sensor.physical.min,max:sensor.physical.max})} ${sensor.physical.unit}`;
+  const agronomic = sensor.agronomic;
+  if (!agronomic) return `${t("rule_physical")}: ${physical}`;
+  const bands = ["ideal","attention","critical"].map(status=>{
+    const ranges = agronomic[status] || [];
+    return `${t(`rule_${status}`)}: ${ranges.map(formatRuleBand).join(" / ")} ${agronomic.unit}`;
+  });
+  return `${t("rule_physical")}: ${physical}<br>${bands.join("<br>")}`;
+}
+
+function latestIsStale(latest = APP_DATA.latest){
+  if (!latest || !latest.timestamp) return false;
+  const timestamp = new Date(latest.timestamp).getTime();
+  return !Number.isFinite(timestamp) || Date.now() - timestamp > STALE_AFTER_MS;
+}
+
+function renderSensorGrid(latest, stale = false){
+  const sensorData = latest && latest.sensor_data ? latest.sensor_data : {};
+  const grid = document.getElementById("sensorGrid");
+  grid.innerHTML = "";
+  SENSORS.forEach(sensor=>{
+    const value = sensorData[sensor.field];
+    let status = stale ? "pending" : sensorStatus(sensor.key, latest);
+    const card = document.createElement("div");
+    card.className = "card sensor-card " + (status==="critical"?"critical":status==="attention"?"attention":status==="fault"?"fault":"");
+    const shownValue = typeof value === "number" && isTemperatureSensor(sensor)
+      ? displayTemperature(value)
+      : value;
+    card.innerHTML = `
+      <div class="top">
+        <div class="icon">${ICONS[sensor.icon]}</div>
+        <span class="status-dot ${status}"></span>
+      </div>
+      <span class="name">${t(sensor.nameKey)}</span>
+      <span class="value mono">${shownValue==null ? "—" : (typeof shownValue==="number"? (Number.isInteger(shownValue)?shownValue:shownValue.toFixed(1)) : shownValue)}<span class="unit">${displaySensorUnit(sensor)}</span></span>
+      <span class="target-note">${ruleRangeText(sensor)}</span>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderHome(){
+  const latest = APP_DATA.latest;
+  const banner = document.getElementById("statusBanner");
+  const iconMap = { normal:"check", investigate:"warn", critical:"alertc", fault:"noSignal" };
+
+  const ledMode = !APP_DATA.led || APP_DATA.led.mode === "auto"
+    ? "auto"
+    : APP_DATA.led.manual_state ? "on" : "off";
+  document.querySelectorAll("#ledSeg button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.val === ledMode);
+    b.onclick = ()=>{
+      if (b.dataset.val === "auto") setLed("auto");
+      else setLed("manual", b.dataset.val === "on");
+    };
+  });
+  document.getElementById("ledError").textContent = APP_DATA.ledError ? t("led_save_error") : "";
+
+  if (!latest){
+    banner.className = "status-banner";
+    banner.querySelector(".icon-wrap").innerHTML = ICONS.warn;
+    banner.querySelector("h3").textContent = t("no_data_title");
+    banner.querySelector("p").textContent = t("no_data_desc");
+    document.getElementById("lastReadingTime").textContent = "—";
+    document.getElementById("freshSecs").textContent = "—";
+    document.querySelector(".freshness .dot").classList.remove("stale");
+    document.querySelector(".sidebar-foot .dot-live").classList.remove("stale");
+    window.__lastReadingAt = null;
+    document.querySelector(".sidebar-foot span:last-child").textContent = t("waiting_for_data");
+    renderSensorGrid(null);
+    return;
+  }
+
+  const stale = latestIsStale(latest);
+  document.querySelector(".sidebar-foot span:last-child").textContent = t(stale ? "stale_data" : "updated_ago");
+  document.querySelector(".freshness .dot").classList.toggle("stale", stale);
+  document.querySelector(".sidebar-foot .dot-live").classList.toggle("stale", stale);
+
+  const uiSev = toUiSeverity(latest.severity);
+  const visibleSev = stale ? "investigate" : uiSev;
+  banner.className = "status-banner " + visibleSev;
+  banner.querySelector(".icon-wrap").innerHTML = ICONS[iconMap[visibleSev]];
+  banner.querySelector("h3").textContent = t(stale ? "status_stale_title" : "status_"+uiSev+"_title");
+  banner.querySelector("p").textContent = t(stale ? "status_stale_desc" : "status_"+uiSev+"_desc");
+
+  if (latest.timestamp){
+    const d = new Date(latest.timestamp);
+    if (!Number.isNaN(d.getTime())){
+      document.getElementById("lastReadingTime").textContent = d.toLocaleTimeString(STATE.lang);
+      window.__lastReadingAt = d;
+    }
+  }
+
+  window.__staleUiState = stale;
+  renderSensorGrid(latest, stale);
+}
+
+/* ============================================================ RENDER: ALERTS ============================================================ */
+// Rule alerts carry their measured value, configured ranges and French
+// manual action from the backend so the diagnostic details remain intact.
+// Localizing decision.py's messages is a follow-up, not done here.
+function renderAlerts(){
+  const filters = ["all","investigate","critical","fault"];
+  const row = document.getElementById("alertFilters");
+  row.innerHTML = "";
+  filters.forEach(f=>{
+    const b = document.createElement("button");
+    b.className = "pill" + (STATE.alertFilter===f ? " active":"");
+    b.textContent = t("filter_"+f);
+    b.onclick = ()=>{ STATE.alertFilter=f; renderAlerts(); };
+    row.appendChild(b);
+  });
+
+  const list = document.getElementById("alertList");
+  const iconMap = { normal:"check", investigate:"warn", critical:"alertc", fault:"noSignal" };
+  const alerts = alertsFromHistory().filter(a=>
+    STATE.alertFilter === "all" || a.sev === STATE.alertFilter);
+
+  if (!APP_DATA.historyError && !APP_DATA.historyLoading){
+    markAlertsAsRead(alertsFromHistory());
+  }
+
+  if (APP_DATA.historyError || APP_DATA.historyLoading || alerts.length === 0){
+    const emptyKey = APP_DATA.historyError ? "history_load_error"
+      : APP_DATA.historyLoading ? "history_loading"
+      : "no_alerts_yet";
+    list.innerHTML = `<div class="empty" style="text-align:center; color:var(--ink-soft); padding:40px 0; font-size:13px;">${t(emptyKey)}</div>`;
+    return;
+  }
+
+  const dedupedAlerts = alerts.reduce((acc, alert)=>{
+    const existing = acc.find(item => item.title === alert.title && item.sev === alert.sev && item.raw && alert.raw && JSON.stringify(item.raw.recommendations || []) === JSON.stringify(alert.raw.recommendations || []));
+    if (existing) {
+      existing.count += 1;
+      existing.sensors = [...new Set([...existing.sensors, ...alert.sensors])];
+      existing.time = alert.time;
+      existing.raw = alert.raw;
+      return acc;
+    }
+    acc.push({...alert, count: alert.count || 1});
+    return acc;
+  }, []);
+
+  list.innerHTML = "";
+  dedupedAlerts.forEach(a=>{
+    const el = document.createElement("div");
+    el.className = "alert-item " + a.sev;
+    const [usefulLabel, falseLabel] = ["Useful", "False alarm"];
+    el.innerHTML = `
+      <div class="aicon ${a.sev}">${ICONS[iconMap[a.sev]]}</div>
+      <div class="alert-body">
+        <div class="alert-head"><span class="title">${a.title}</span><time>${a.time}${a.count > 1 ? ` · ${a.count} ${t("readings_word")}` : ""}</time></div>
+        <p class="alert-desc">${a.desc}</p>
+        <div class="tag-row">${a.sensors.map(sk=>`<span class="tag">${t(SENSORS.find(s=>s.key===sk).nameKey)}</span>`).join("")}</div>
+        <div class="alert-feedback">
+          <button class="feedback-btn" data-feedback="useful" type="button">${usefulLabel}</button>
+          <button class="feedback-btn" data-feedback="false_alarm" type="button">${falseLabel}</button>
+        </div>
+      </div>`;
+    el.addEventListener("click", (event)=>{
+      const feedbackButton = event.target.closest(".feedback-btn");
+      if (feedbackButton) {
+        const buttons = el.querySelectorAll(".feedback-btn");
+        buttons.forEach(btn => btn.classList.toggle("is-selected", btn === feedbackButton));
+        return;
+      }
+      openAlertModal(a);
+    });
+    list.appendChild(el);
+  });
+}
+
+function openAlertModal(a){
+  const modal = document.getElementById("modal");
+  const iconMap = { normal:"check", investigate:"warn", critical:"alertc", fault:"noSignal" };
+  const translated = localizedRecommendation(a.raw);
+  const action = (translated && translated.action) || (a.raw && a.raw.user_action);
+  const sd = (a.raw && a.raw.sensor_data) || {};
+  const l3 = (a.raw && a.raw.level3) || {};
+  const l1 = (a.raw && a.raw.level1) || {};
+  const physicalIssues = [
+    l1.invalid_sensors, l1.context_issues, l1.frozen_sensors, l1.impossible_jumps,
+  ].filter(Boolean);
+  const valsHtml = `<div class="mvals">` + SENSORS.map(s=>{
+    const v = sd[s.field];
+    if (v == null) return "";
+    const readingStatus = l3[s.agronomic && s.agronomic.status_key];
+    const bad = readingStatus === "attention" || readingStatus === "critical" ||
+      physicalIssues.some(issues=>issues[s.key] !== undefined);
+    const shown = typeof v==="number" && isTemperatureSensor(s) ? displayTemperature(v) : v;
+    const detailText = `${t(s.nameKey)} • ${typeof shown === "number" ? shown.toFixed(1) : shown}${displaySensorUnit(s)}`;
+    return `<div title="${detailText}"><div class="k">${t(s.nameKey)}</div><div class="v ${bad?'bad':''}">${typeof shown==="number" ? shown.toFixed(1) : shown}${displaySensorUnit(s)}</div></div>`;
+  }).join("") + `</div>`;
+
+  modal.innerHTML = `
+    <div class="mhead">
+      <div class="aicon ${a.sev}" style="width:34px;height:34px;">${ICONS[iconMap[a.sev]]}</div>
+      <button id="closeModal" type="button" aria-label="${t("close")}">✕</button>
+    </div>
+    <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">${a.title}</h3>
+    <p style="font-size:13px; color:var(--ink-soft); line-height:1.5;">${translated && translated.detailMessage ? translated.detailMessage : a.desc}</p>
+    <p style="font-size:11px; color:var(--ink-soft); margin-top:10px; font-weight:600;">${t("detected_by_rules")}</p>
+    ${action ? `<p class="action-line">${ICONS.check}<span>${action}</span></p>` : ""}
+    <p style="font-size:11px; color:var(--ink-soft); margin-top:10px; line-height:1.5;">${t("decision_support_note")}</p>
+    ${valsHtml}
+  `;
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("closeModal").onclick = ()=> document.getElementById("overlay").classList.remove("show");
+}
+document.getElementById("overlay").addEventListener("click", (e)=>{ if(e.target.id==="overlay") e.target.classList.remove("show"); });
+document.addEventListener("visibilitychange", ()=>{
+  if (!document.hidden && STATE.screen === "alerts") renderAlerts();
+});
+
+/* ============================================================ RENDER: HISTORY ============================================================ */
+function localDateInputValue(date){
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function historyApiUrl(){
+  const now = new Date();
+  let start;
+  let end;
+  if (STATE.historyRange === "today"){
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  } else if (STATE.historyRange === "last7"){
+    end = now;
+    start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  } else {
+    const from = document.getElementById("historyFrom").value;
+    const to = document.getElementById("historyTo").value;
+    if (!from || !to) return null;
+    start = new Date(from + "T00:00:00");
+    end = new Date(to + "T00:00:00");
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
+    end.setDate(end.getDate() + 1);
+  }
+  const params = new URLSearchParams({start:start.toISOString(), end:end.toISOString()});
+  return "/api/history?" + params.toString();
+}
+
+async function loadHistoryRange(){
+  const url = historyApiUrl();
+  if (!url){
+    APP_DATA.historyError = null;
+    renderHistory();
+    return;
+  }
+  APP_DATA.historyLoading = true;
+  APP_DATA.historyError = null;
+  renderHistory();
+  await fetchHistory(url);
+  renderHistory();
+}
+
+function renderHistory(){
+  const tabs = document.getElementById("historyTabs");
+  tabs.innerHTML = "";
+  SENSORS.forEach(s=>{
+    const b = document.createElement("button");
+    b.className = STATE.historySensor===s.key ? "active":"";
+    b.textContent = t(s.nameKey);
+    b.onclick = ()=>{ STATE.historySensor=s.key; renderHistory(); };
+    tabs.appendChild(b);
+  });
+
+  const ranges = [["today","today"],["last7","last7"],["custom","custom"]];
+  const rr = document.getElementById("rangeRow");
+  rr.innerHTML = "";
+  ranges.forEach(([id,key])=>{
+    const b = document.createElement("button");
+    b.className = STATE.historyRange===id ? "active":"";
+    b.textContent = t(key);
+    b.onclick = ()=>{
+      STATE.historyRange=id;
+      if (id === "custom"){
+        const today = localDateInputValue(new Date());
+        document.getElementById("historyFrom").value ||= today;
+        document.getElementById("historyTo").value ||= today;
+      }
+      loadHistoryRange();
+    };
+    rr.appendChild(b);
+  });
+
+  const customInputs = document.getElementById("customRangeInputs");
+  customInputs.hidden = STATE.historyRange !== "custom";
+  const fromInput = document.getElementById("historyFrom");
+  const toInput = document.getElementById("historyTo");
+  fromInput.onchange = toInput.onchange = loadHistoryRange;
+
+  const s = SENSORS.find(x=>x.key===STATE.historySensor);
+  document.getElementById("chartTitle").textContent = t(s.nameKey);
+  const historyUrl = historyApiUrl();
+  const invalidCustomRange = STATE.historyRange === "custom" && !historyUrl && fromInput.value && toInput.value;
+  const historyLoading = APP_DATA.historyLoading;
+  const historyError = APP_DATA.historyError;
+  document.getElementById("chartRangeLabel").textContent = historyLoading
+    ? t("history_loading")
+    : historyError
+    ? t("history_load_error")
+    : !historyUrl
+    ? t(invalidCustomRange ? "invalid_custom_range" : "select_custom_range")
+    : `${APP_DATA.history.length} ${t("readings_word")}`;
+
+  if (historyLoading){
+    document.getElementById("chartSvg").innerHTML =
+      `<text x="320" y="110" text-anchor="middle" font-size="13" fill="var(--ink-soft)" font-family="IBM Plex Sans">${t("history_loading")}</text>`;
+    return;
+  }
+  if (historyError){
+    document.getElementById("chartSvg").innerHTML =
+      `<text x="320" y="110" text-anchor="middle" font-size="13" fill="var(--ink-soft)" font-family="IBM Plex Sans">${t("history_load_error")}</text>`;
+    return;
+  }
+  if (!historyUrl){
+    document.getElementById("chartSvg").innerHTML = "";
+    return;
+  }
+  const points = APP_DATA.history.map(r=>({
+    value:r.sensor_data && typeof r.sensor_data[s.field] === "number"
+      ? (isTemperatureSensor(s) ? displayTemperature(r.sensor_data[s.field]) : r.sensor_data[s.field])
+      : null,
+    time:new Date(r.recorded_at || r.timestamp),
+  }));
+
+  if (points.filter(point=>typeof point.value==="number").length < 2){
+    document.getElementById("chartSvg").innerHTML =
+      `<text x="320" y="110" text-anchor="middle" font-size="13" fill="var(--ink-soft)" font-family="IBM Plex Sans">${t("not_enough_history")}</text>`;
+    return;
+  }
+  const safe = isTemperatureSensor(s) && STATE.tempUnit === "f"
+    ? s.safe.map(displayTemperature)
+    : s.safe;
+  drawChart(points, safe, displaySensorUnit(s));
+}
+
+function drawChart(data, safe, unit){
+  const W=640,H=220, padL=42, padR=10, padT=14, padB=22;
+  const validValues = data.filter(point=>typeof point.value==="number").map(point=>point.value);
+  const allVals = validValues.concat(safe);
+  let min = allVals.reduce((current,value)=>Math.min(current,value), Infinity);
+  let max = allVals.reduce((current,value)=>Math.max(current,value), -Infinity);
+  const margin = (max-min)*0.08 || 1;
+  min -= margin; max += margin;
+  const validTimes = data.map(point=>point.time.getTime()).filter(Number.isFinite);
+  const firstTime = validTimes.reduce((current,value)=>Math.min(current,value), Infinity);
+  const lastTime = validTimes.reduce((current,value)=>Math.max(current,value), -Infinity);
+  const x = (point, index) => {
+    const progress = lastTime > firstTime
+      ? (point.time.getTime()-firstTime)/(lastTime-firstTime)
+      : index/(data.length-1);
+    return padL + progress*(W-padL-padR);
+  };
+  const y = v => padT + (1-(v-min)/(max-min))*(H-padT-padB);
+
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const accentSoft = getComputedStyle(document.documentElement).getPropertyValue('--accent-soft').trim();
+  const line = getComputedStyle(document.documentElement).getPropertyValue('--line').trim();
+  const inkSoft = getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim();
+
+  const bandTop = y(safe[1]), bandBot = y(safe[0]);
+  let path = "";
+  let disconnected = true;
+  data.forEach((point, index)=>{
+    if (typeof point.value !== "number" || !Number.isFinite(point.value)){
+      disconnected = true;
+      return;
+    }
+    path += (disconnected ? "M" : "L") + x(point,index).toFixed(1) + " " + y(point.value).toFixed(1) + " ";
+    disconnected = false;
+  });
+
+  const gridLines = [min + (max-min)*0.25, min+(max-min)*0.5, min+(max-min)*0.75].map(v=>
+    `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="${line}" stroke-width="1" stroke-dasharray="3,4"/>
+     <text x="${padL-8}" y="${y(v).toFixed(1)+4}" font-size="10" text-anchor="end" fill="${inkSoft}" font-family="IBM Plex Mono, monospace">${v.toFixed(1)}${unit ? " "+unit : ""}</text>`
+  ).join("");
+  const dateFormatter = new Intl.DateTimeFormat(STATE.lang, {
+    month:"short", day:"numeric", hour:"2-digit", minute:"2-digit",
+  });
+  const timeLabels = validTimes.length ? [0, 0.5, 1].map(progress=>{
+    const timestamp = firstTime + (lastTime-firstTime)*progress;
+    const label = dateFormatter.format(new Date(timestamp));
+    const labelX = padL + progress*(W-padL-padR);
+    const anchor = progress === 0 ? "start" : progress === 1 ? "end" : "middle";
+    return `<text x="${labelX.toFixed(1)}" y="${H-3}" font-size="9" text-anchor="${anchor}" fill="${inkSoft}" font-family="IBM Plex Sans">${label}</text>`;
+  }).join("") : "";
+  const dots = data.map((point,index)=>typeof point.value==="number" && Number.isFinite(point.value)
+    ? `<circle cx="${x(point,index).toFixed(1)}" cy="${y(point.value).toFixed(1)}" r="1.8" fill="${accent}"><title>${new Intl.DateTimeFormat(STATE.lang,{dateStyle:"medium",timeStyle:"medium"}).format(point.time)} · ${point.value.toFixed(1)} ${unit}</title></circle>`
+    : "").join("");
+
+  document.getElementById("chartSvg").innerHTML = `
+    <rect x="${padL}" y="${bandTop.toFixed(1)}" width="${W-padL-padR}" height="${(bandBot-bandTop).toFixed(1)}" fill="${accentSoft}" opacity="0.7"/>
+    ${gridLines}
+    <path d="${path}" fill="none" stroke="${accent}" stroke-width="2"/>
+    ${dots}
+    ${timeLabels}
+  `;
+}
+
+/* ============================================================ RENDER: HEALTH ============================================================ */
+function renderHealth(){
+  const latest = APP_DATA.latest;
+  const stale = latestIsStale(latest);
+  const faulty = latest ? SENSORS.filter(s=>sensorStatus(s.key, latest)==="fault") : [];
+  const missing = latest ? SENSORS.filter(s=>sensorStatus(s.key, latest)==="pending") : [];
+  const hero = document.getElementById("healthHero");
+  hero.className = "card health-hero" + (faulty.length ? " bad":"");
+  hero.querySelector(".ring").innerHTML = !latest || stale ? ICONS.warn : faulty.length ? ICONS.noSignal : ICONS.check;
+  hero.querySelector("h3").textContent = !latest
+    ? t("no_data_title")
+    : stale ? t("status_stale_title")
+    : faulty.length ? t("some_faulty")
+    : missing.length ? t("some_missing")
+    : t("all_healthy");
+  hero.querySelector("p").textContent = !latest
+    ? t("no_data_desc")
+    : stale ? t("status_stale_desc")
+    : faulty.length ? t("some_faulty_desc")
+    : missing.length ? t("some_missing_desc")
+    : t("all_healthy_desc");
+
+  const grid = document.getElementById("healthGrid");
+  grid.innerHTML = "";
+  SENSORS.forEach(s=>{
+    const status = !latest || stale ? "pending" : sensorStatus(s.key, latest);
+    const bad = status === "fault";
+    const row = document.createElement("div");
+    row.className = "card health-row" + (bad ? " fault" : status === "pending" ? " pending" : "");
+    row.innerHTML = `
+      <div class="icon">${ICONS[s.icon]}</div>
+      <div><div class="name">${t(s.nameKey)}</div><div class="state">${!latest ? "—" : stale ? t("stale_data") : bad ? t("status_bad") : status === "pending" ? t("sensor_missing") : t("status_ok")}</div></div>
+      <div class="stateok">${!latest || stale || status === "pending" ? "—" : bad ? ICONS.noSignal : ICONS.check}</div>
+    `;
+    grid.appendChild(row);
+  });
+}
+
+/* ============================================================ RENDER: SETTINGS ============================================================ */
+function renderSettings(){
+  const langs = [["en","English"],["fr","Français"],["ar","العربية"]];
+  const grid = document.getElementById("langGrid");
+  grid.innerHTML = "";
+  langs.forEach(([code,native])=>{
+    const b = document.createElement("button");
+    b.className = "lang-opt" + (STATE.lang===code ? " active":"");
+    b.innerHTML = `<div class="code">${code.toUpperCase()}</div><div class="native">${native}</div>`;
+    b.onclick = ()=>{
+      STATE.lang=code;
+      persistPreferences();
+      applyLangGlobal();
+      render();
+    };
+    grid.appendChild(b);
+  });
+
+  document.querySelectorAll("#themeRow .theme-opt").forEach(b=>{
+    b.classList.toggle("active", b.dataset.val===STATE.theme);
+    b.onclick = ()=>{ setTheme(b.dataset.val); };
+  });
+
+  document.querySelectorAll(".switch").forEach(sw=>{
+    const enabled = Boolean(STATE.notifications[sw.dataset.key]);
+    sw.classList.toggle("on", enabled);
+    sw.setAttribute("aria-pressed", String(enabled));
+    sw.setAttribute("aria-label", t("notif_"+sw.dataset.key));
+    sw.onclick = ()=> toggleNotification(sw.dataset.key, !STATE.notifications[sw.dataset.key]);
+  });
+  if (Object.values(STATE.notifications).some(Boolean)){
+    notificationStatusKey = !("Notification" in window)
+      ? "notifications_unavailable"
+      : Notification.permission === "granted"
+        ? "notifications_ready"
+        : "notifications_blocked";
+  }
+  document.getElementById("notificationStatus").textContent = t(notificationStatusKey);
+
+  document.querySelectorAll("[data-unit]").forEach(button=>{
+    button.classList.toggle("active", button.dataset.unit === STATE.tempUnit);
+    button.onclick = ()=>{
+      STATE.tempUnit = button.dataset.unit;
+      persistPreferences();
+      render();
+    };
+  });
+
+  document.querySelectorAll("[data-refresh]").forEach(button=>{
+    button.classList.toggle("active", Number(button.dataset.refresh) === STATE.refreshSeconds);
+    button.onclick = ()=>{
+      STATE.refreshSeconds = Number(button.dataset.refresh);
+      persistPreferences();
+      scheduleLiveRefresh();
+      render();
+    };
+  });
+}
+
+/* ============================================================ THEME / LANG / GLOBAL ============================================================ */
+function setTheme(th){
+  STATE.theme = th;
+  persistPreferences();
+  document.documentElement.setAttribute("data-theme", th);
+  document.getElementById("themeIconSun").style.display = th==="dark" ? "block" : "none";
+  document.getElementById("themeIconMoon").style.display = th==="dark" ? "none" : "block";
+  render();
+}
+
+async function toggleNotification(key, enabled){
+  notificationStatusKey = "notifications_prompt";
+  if (enabled){
+    if (!("Notification" in window)){
+      notificationStatusKey = "notifications_unavailable";
+      renderSettings();
+      return;
+    }
+    try{
+      const permission = Notification.permission === "default"
+        ? await Notification.requestPermission()
+        : Notification.permission;
+      if (permission !== "granted"){
+        notificationStatusKey = "notifications_blocked";
+        renderSettings();
+        return;
+      }
+    }catch(error){
+      console.warn("Could not request browser notification permission", error);
+      notificationStatusKey = "notifications_blocked";
+      renderSettings();
+      return;
+    }
+  }
+  STATE.notifications[key] = enabled;
+  persistPreferences();
+  if (APP_DATA.latest) window.__lastObservedAlertSignature = alertSignature(APP_DATA.latest);
+  notificationStatusKey = Object.values(STATE.notifications).some(Boolean)
+    ? "notifications_ready"
+    : "notifications_prompt";
+  renderSettings();
+}
+document.getElementById("themeBtn").onclick = ()=> setTheme(STATE.theme==="light" ? "dark" : "light");
+
+function applyLangGlobal(){
+  const meta = I18N[STATE.lang];
+  document.documentElement.lang = STATE.lang;
+  document.documentElement.dir = meta.dir;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    el.textContent = t(el.getAttribute("data-i18n"));
+  });
+  document.querySelectorAll("[data-i18n-aria-label]").forEach(el=>{
+    el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria-label")));
+  });
+}
+
+document.getElementById("dismissLegend").onclick = ()=>{
+  document.getElementById("legend").style.display = "none";
+};
+
+function render(){
+  renderNav();
+  renderTopbar();
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+STATE.screen).classList.add("active");
+  applyLangGlobal();
+  if (STATE.screen==="home") renderHome();
+  if (STATE.screen==="alerts") renderAlerts();
+  if (STATE.screen==="history") renderHistory();
+  if (STATE.screen==="health") renderHealth();
+  if (STATE.screen==="settings") renderSettings();
+}
+
+/* ============================================================ INIT / POLLING ============================================================ */
+const HISTORY_REFRESH_MS = 15000;
+let liveRefreshTimer = null;
+
+function scheduleLiveRefresh(){
+  if (liveRefreshTimer !== null) clearInterval(liveRefreshTimer);
+  liveRefreshTimer = setInterval(refreshLive, STATE.refreshSeconds * 1000);
+}
+
+function formatReadingAge(date){
+  const elapsed = Math.max(0, Math.round((Date.now()-date.getTime())/1000));
+  const formatter = new Intl.RelativeTimeFormat(STATE.lang, {numeric:"auto"});
+  if (elapsed < 60) return formatter.format(-elapsed, "second");
+  if (elapsed < 3600) return formatter.format(-Math.round(elapsed/60), "minute");
+  if (elapsed < 86400) return formatter.format(-Math.round(elapsed/3600), "hour");
+  return formatter.format(-Math.round(elapsed/86400), "day");
+}
+
+const NOTIFICATION_COOLDOWN_MS = 15 * 60 * 1000;
+const ALERT_SEVERITY_RANK = {normal:0, investigate:1, critical:2, fault:3};
+
+function alertSignature(reading){
+  const severity = toUiSeverity(reading && reading.severity);
+  if (severity === "normal") return "";
+  const recommendations = (reading && reading.recommendations) || [];
+  const invalid = (reading && reading.level1) || {};
+  return JSON.stringify([
+    severity,
+    recommendations.map(item=>item.type).sort(),
+    Object.keys(invalid.invalid_sensors || {}).concat(
+      Object.keys(invalid.context_issues || {})
+    ).sort(),
+  ]);
+}
+
+function notifyForNewReading(latest){
+  if (!latest || !latest.timestamp) return;
+  const signature = alertSignature(latest);
+  if (signature === window.__lastObservedAlertSignature) return;
+  window.__lastObservedAlertSignature = signature;
+  if (!signature || !document.hidden || !("Notification" in window) || Notification.permission !== "granted") return;
+  const severity = toUiSeverity(latest.severity);
+  if (!STATE.notifications[severity]) return;
+  const now = Date.now();
+  const escalated = ALERT_SEVERITY_RANK[severity] > ALERT_SEVERITY_RANK[STATE.lastNotificationSeverity];
+  if (!escalated && now - STATE.lastNotificationAt < NOTIFICATION_COOLDOWN_MS) return;
+  const recommendation = localizedRecommendation(latest);
+  const title = recommendation ? recommendation.title : t("status_"+severity+"_title");
+  const body = recommendation ? recommendation.message : t("status_"+severity+"_desc");
+  try{
+    new Notification(title, {body});
+    STATE.lastNotificationAt = now;
+    STATE.lastNotificationSeverity = severity;
+    persistPreferences();
+  }catch(error){
+    console.warn("Could not show browser notification", error);
+  }
+}
+
+async function refreshLive(){
+  await Promise.all([fetchLatest(), fetchLed()]);
+  notifyForNewReading(APP_DATA.latest);
+  if (STATE.screen === "home") renderHome();
+  if (STATE.screen === "health") renderHealth();
+}
+
+async function refreshHistoryDependent(){
+  const url = STATE.screen === "history" ? historyApiUrl() : "/api/history";
+  if (url) await fetchHistory(url);
+  if (STATE.screen === "alerts") renderAlerts();
+  if (STATE.screen === "history") renderHistory();
+  renderNav();
+}
+
+async function boot(){
+  setTheme(STATE.theme);
+  render(); // draw the shell immediately (nav, empty states) while data loads
+  await Promise.all([fetchLatest(), fetchLed(), fetchHistory()]);
+  window.__lastObservedAlertSignature = APP_DATA.latest ? alertSignature(APP_DATA.latest) : "";
+  render(); // re-render with real data now that it has arrived
+  scheduleLiveRefresh();
+}
+
+boot();
+setInterval(refreshHistoryDependent, HISTORY_REFRESH_MS);
+
+/* real "freshness" ticker, based on the actual last-reading timestamp */
+setInterval(()=>{
+  const el = document.getElementById("freshSecs");
+  if (!el || !window.__lastReadingAt) return;
+  el.textContent = formatReadingAge(window.__lastReadingAt);
+  const stale = latestIsStale();
+  if (window.__staleUiState !== stale){
+    window.__staleUiState = stale;
+    if (STATE.screen === "home") renderHome();
+    if (STATE.screen === "health") renderHealth();
+  }
+}, 1000);
+</script>
+</body>
+</html>

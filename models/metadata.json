@@ -1,0 +1,309 @@
+{
+  "physical_rules": {
+    "comment": "Bornes de plausibilite du materiel. Hors bornes, la lecture est une panne capteur, pas un diagnostic de culture.",
+    "sensors": {
+      "ph": {
+        "field": "pH",
+        "reading_field": "ph",
+        "label": "pH",
+        "unit": "pH",
+        "min": 0,
+        "max": 14,
+        "source": "Limites physiques de l'echelle pH."
+      },
+      "tds": {
+        "field": "TDS",
+        "reading_field": "tds",
+        "label": "TDS",
+        "unit": "ppm",
+        "min": 0,
+        "max": 3000,
+        "source": "Plage de mesure configuree pour le capteur TDS du projet."
+      },
+      "air_temperature": {
+        "field": "DHT_temp",
+        "reading_field": "temperature",
+        "label": "Temperature air interieure",
+        "unit": "°C",
+        "min": -10,
+        "max": 60,
+        "source": "Plage de fonctionnement configuree pour le capteur DHT interieur."
+      },
+      "air_humidity": {
+        "field": "DHT_humidity",
+        "reading_field": "humidity",
+        "label": "Humidite air interieure",
+        "unit": "%",
+        "min": 0,
+        "max": 100,
+        "source": "Limites physiques de l'humidite relative."
+      },
+      "water_temperature": {
+        "field": "water_temp",
+        "reading_field": "water_temperature",
+        "label": "Temperature eau",
+        "unit": "°C",
+        "min": 0,
+        "max": 45,
+        "source": "Plage de mesure configuree pour la sonde DS18B20 du projet."
+      },
+      "water_level": {
+        "field": "water_level",
+        "reading_field": "water_level",
+        "label": "Niveau d'eau",
+        "unit": "%",
+        "context": true,
+        "min": 0,
+        "max": 100,
+        "source": "Limites physiques du niveau exprime en pourcentage."
+      },
+      "outside_temperature": {
+        "field": "temperature_outside",
+        "reading_field": "temperature_outside",
+        "label": "Temperature exterieure",
+        "unit": "°C",
+        "context": true,
+        "min": -15,
+        "max": 55,
+        "source": "Plage de mesure configuree pour le capteur DHT exterieur."
+      },
+      "outside_humidity": {
+        "field": "humidity_outside",
+        "reading_field": "humidity_outside",
+        "label": "Humidite exterieure",
+        "unit": "%",
+        "context": true,
+        "min": 0,
+        "max": 100,
+        "source": "Limites physiques de l'humidite relative."
+      }
+    },
+    "frozen_detection": {
+      "enabled": true,
+      "consecutive_readings": 8,
+      "comment": "Une valeur numeriquement identique sur 8 lectures successives (environ 2 minutes a 15 s) est signalee. Augmenter N si un capteur a une resolution faible ou si les conditions sont tres stables."
+    },
+    "maximum_change_per_15_seconds": {
+      "ph": 1.5,
+      "air_temperature": 5,
+      "water_temperature": 5,
+      "outside_temperature": 5
+    },
+    "maximum_change_comment": "Limites de variation configurables pour detecter une lecture physiquement invraisemblable; verifier et ajuster selon la resolution et l'etalonnage des sondes.",
+    "jump_detection": {
+      "enabled": true,
+      "reference_interval_seconds": 15,
+      "minimum_interval_seconds": 10,
+      "maximum_gap_seconds": 30,
+      "comment": "Les variations maximales sont exprimees pour 15 secondes et adaptees a l'intervalle reel entre deux lectures. Les comparaisons sont differees avant 10 s et ignorees au-dela de 30 s."
+    }
+  },
+  "agronomic_rules": {
+    "crop": "Laitue",
+    "comment": "Plages configurables de surveillance de la culture. Elles signalent un besoin de verification et ne commandent aucun ajustement automatique.",
+    "sensors": {
+      "ph": {
+        "alert_type": "ph",
+        "status_key": "ph_status",
+        "unit": "pH",
+        "ideal": [
+          {
+            "min": 5.5,
+            "max": 6.5
+          }
+        ],
+        "attention": [
+          {
+            "min": 5.2,
+            "max": 5.5,
+            "max_inclusive": false
+          },
+          {
+            "min": 6.5,
+            "min_inclusive": false,
+            "max": 6.8
+          }
+        ],
+        "critical": [
+          {
+            "max": 5.2,
+            "max_inclusive": false
+          },
+          {
+            "min": 6.8,
+            "min_inclusive": false
+          }
+        ],
+        "source": "Plage cible de laitue retenue pour le projet; a documenter selon la solution nutritive et le stade de culture."
+      },
+      "tds": {
+        "alert_type": "tds",
+        "status_key": "tds_status",
+        "unit": "ppm",
+        "ideal": [
+          {
+            "min": 560,
+            "max": 900
+          }
+        ],
+        "attention": [
+          {
+            "min": 500,
+            "max": 560,
+            "max_inclusive": false
+          },
+          {
+            "min": 900,
+            "min_inclusive": false,
+            "max": 1000
+          }
+        ],
+        "critical": [
+          {
+            "max": 500,
+            "max_inclusive": false
+          },
+          {
+            "min": 1000,
+            "min_inclusive": false
+          }
+        ],
+        "scale": "NaCl 0.5 (ppm ≈ EC en mS/cm × 500)",
+        "source": "UF/IFAS HS1422 indique 1.2–1.8 mS/cm (560–840 ppm selon sa publication); seuils et echelle a confirmer par calibration de la sonde."
+      },
+      "water_temperature": {
+        "alert_type": "water_temp",
+        "status_key": "water_temp_status",
+        "unit": "°C",
+        "ideal": [
+          {
+            "min": 18,
+            "max": 22
+          }
+        ],
+        "attention": [
+          {
+            "min": 15,
+            "max": 18,
+            "max_inclusive": false
+          },
+          {
+            "min": 22,
+            "min_inclusive": false,
+            "max": 26
+          }
+        ],
+        "critical": [
+          {
+            "max": 15,
+            "max_inclusive": false
+          },
+          {
+            "min": 26,
+            "min_inclusive": false
+          }
+        ],
+        "source": "Plages de surveillance demandees pour le projet; a valider selon les conditions NFT locales."
+      },
+      "air_temperature": {
+        "alert_type": "air_temp",
+        "status_key": "air_temp_status",
+        "unit": "°C",
+        "ideal": [
+          {
+            "min": 18,
+            "max": 24
+          }
+        ],
+        "attention": [
+          {
+            "min": -10,
+            "max": 18,
+            "max_inclusive": false
+          },
+          {
+            "min": 24,
+            "min_inclusive": false,
+            "max": 28
+          }
+        ],
+        "critical": [
+          {
+            "min": 28,
+            "min_inclusive": false
+          }
+        ],
+        "source": "Seuils de surveillance configurables du projet; la plage basse est classee attention."
+      },
+      "air_humidity": {
+        "alert_type": "air_hum",
+        "status_key": "air_humidity_status",
+        "unit": "%",
+        "ideal": [
+          {
+            "min": 50,
+            "max": 70
+          }
+        ],
+        "attention": [
+          {
+            "min": 40,
+            "max": 50,
+            "max_inclusive": false
+          },
+          {
+            "min": 70,
+            "min_inclusive": false,
+            "max": 80
+          }
+        ],
+        "critical": [
+          {
+            "max": 40,
+            "max_inclusive": false
+          },
+          {
+            "min": 80,
+            "min_inclusive": false
+          }
+        ],
+        "source": "Plages de surveillance de l'humidite de l'air retenues pour le projet; a valider avec le climat et la ventilation."
+      },
+      "water_level": {
+        "alert_type": "water_level",
+        "status_key": "water_level_status",
+        "unit": "%",
+        "ideal": [
+          {
+            "min": 30,
+            "min_inclusive": false
+          }
+        ],
+        "attention": [
+          {
+            "min": 15,
+            "min_inclusive": false,
+            "max": 30
+          }
+        ],
+        "critical": [
+          {
+            "max": 15
+          }
+        ],
+        "source": "Seuils operationnels de niveau du reservoir configures pour le projet."
+      }
+    }
+  },
+  "manual_actions": {
+    "ph": "Verifier le pH avec un appareil calibre et corriger selon le protocole de culture.",
+    "tds": "Verifier l'echelle et l'etalonnage, puis controler la solution nutritive.",
+    "air_temperature": "Verifier le thermometre et la ventilation de la serre.",
+    "air_humidity": "Verifier l'hygrometre et la ventilation.",
+    "water_temperature": "Verifier la sonde, l'aeration et la temperature du reservoir.",
+    "water_level": "Verifier le niveau du reservoir et faire l'appoint si necessaire.",
+    "outside_temperature": "Verifier la sonde exterieure et son emplacement.",
+    "outside_humidity": "Verifier la sonde exterieure et son emplacement."
+  },
+  "sensor_fault_action": "Verifier le branchement et l'etat du capteur avant toute intervention sur la culture."
+}
